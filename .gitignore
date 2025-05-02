@@ -71,6 +71,8 @@ MANIFEST
 # Project-specific
 src copy/
 *copy*.md
+notebooks/deprecated/
+scripts/deprecated/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
