@@ -27,6 +27,42 @@ This system provides an enhanced market making solution based on the Avellaneda-
   - Performance comparison framework
   - Visualization utilities
 
+## Project Structure
+
+```
+├── docs/                     # Documentation
+│   ├── completed_enhancements.md  # Details of implemented enhancements
+│   └── merge_request.md           # Merge request information
+│
+├── notebooks/                # Interactive notebooks
+│   ├── crypto_market_making_enhanced.ipynb    # CEX trading
+│   ├── onchain_market_making_enhanced.ipynb   # Onchain trading
+│   └── rl_enhanced_market_making_enhanced.ipynb  # RL-based model
+│
+├── scripts/                  # Utility scripts
+│   ├── apply_enhancements.py      # Enhancement automation
+│   ├── integration_example.py     # Integration example
+│   ├── enhanced_onchain_market_making.py  # Onchain market making script
+│   └── generate_notebooks.py      # Notebook generation utility
+│
+├── src/                      # Core source code
+│   ├── models/               # Trading models 
+│   ├── data/                 # Data handling
+│   ├── utils/                # Utilities
+│   └── backtesting/          # Testing framework
+│
+├── tests/                    # Testing
+│   ├── test_integration.sh        # Integration test script
+│   └── test_market_data_integration.py  # Market data tests
+│
+├── visualizations/           # Performance visualizations
+│   ├── backtest_comparison.png    # Backtest results comparison
+│   ├── latency_impact.png         # Latency analysis
+│   └── market_data_analysis.png   # Market data visualization
+│
+└── requirements.txt          # Dependencies
+```
+
 ## Quick Start
 
 1. Install dependencies:
@@ -36,29 +72,12 @@ pip install -r requirements.txt
 
 2. Run tests to verify your setup:
 ```bash
-bash test_integration.sh
+bash tests/test_integration.sh
 ```
 
 3. Start with the enhanced notebooks:
 ```bash
 jupyter notebook notebooks/
-```
-
-## Project Structure
-
-```
-├── notebooks/                 # Interactive notebooks
-│   ├── crypto_market_making_enhanced.ipynb       # CEX trading
-│   ├── onchain_market_making_enhanced.ipynb      # Onchain trading
-│   └── rl_enhanced_market_making_enhanced.ipynb  # RL-based model
-├── src/                       # Core source code
-│   ├── models/                # Trading models 
-│   ├── data/                  # Data handling
-│   ├── utils/                 # Utilities
-│   └── backtesting/           # Testing framework
-├── apply_enhancements.py      # Enhancement automation
-├── test_integration.sh        # Integration testing
-└── requirements.txt           # Dependencies
 ```
 
 ## Market Data Integration
@@ -85,14 +104,8 @@ The recent enhancements focus on robust market data integration:
 Run the enhancement script to apply all updates:
 
 ```bash
-python apply_enhancements.py --all
+python scripts/apply_enhancements.py --all
 ```
-
-This applies:
-1. Data processor fixes
-2. Backtest engine improvements
-3. Simulation mode support
-4. Enhanced notebook implementations
 
 ## Usage Examples
 

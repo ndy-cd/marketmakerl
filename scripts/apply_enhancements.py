@@ -220,7 +220,7 @@ def main():
     
     print("\nAll enhancements have been successfully applied!")
     print("\nRecommended next steps:")
-    print("1. Run the integration tests: bash test_integration.sh")
+    print("1. Run the integration tests: bash tests/test_integration.sh")
     print("2. Review the enhanced notebooks")
     print("3. Update documentation to reflect the new capabilities")
 

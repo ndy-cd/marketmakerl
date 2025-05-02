@@ -17,14 +17,14 @@ fi
 
 # Run the unit tests
 echo "Running unit tests..."
-python test_market_data_integration.py
+python tests/test_market_data_integration.py
 TEST_EXIT_CODE=$?
 
 # Run the integration example if tests succeeded
 if [ $TEST_EXIT_CODE -eq 0 ]; then
     echo ""
     echo "Running integration example..."
-    python integration_example.py
+    python scripts/integration_example.py
     EXAMPLE_EXIT_CODE=$?
 else
     echo "Tests failed. Skipping integration example."
