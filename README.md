@@ -31,8 +31,7 @@ This system provides an enhanced market making solution based on the Avellaneda-
 
 ```
 ├── docs/                     # Documentation
-│   ├── completed_enhancements.md  # Details of implemented enhancements
-│   └── merge_request.md           # Merge request information
+│   └── completed_enhancements.md  # Details of implemented enhancements
 │
 ├── notebooks/                # Interactive notebooks
 │   ├── crypto_market_making_enhanced.ipynb    # CEX trading
@@ -40,10 +39,7 @@ This system provides an enhanced market making solution based on the Avellaneda-
 │   └── rl_enhanced_market_making_enhanced.ipynb  # RL-based model
 │
 ├── scripts/                  # Utility scripts
-│   ├── apply_enhancements.py      # Enhancement automation
-│   ├── integration_example.py     # Integration example
-│   ├── enhanced_onchain_market_making.py  # Onchain market making script
-│   └── generate_notebooks.py      # Notebook generation utility
+│   └── integration_example.py     # Integration example
 │
 ├── src/                      # Core source code
 │   ├── models/               # Trading models 
@@ -82,12 +78,12 @@ jupyter notebook notebooks/
 
 ## Market Data Integration
 
-The recent enhancements focus on robust market data integration:
+The project includes robust market data integration:
 
 ### Key Components
 
 - **Market Signal Generation**: Advanced indicators for decision making
-- **Optimized Data Processing**: Fixed deprecated methods and type handling
+- **Optimized Data Processing**: Uses modern data handling methods
 - **Simulation Mode**: Test in simulated environments without API connections
 - **Performance Analytics**: Compare strategy performance
 
@@ -95,21 +91,13 @@ The recent enhancements focus on robust market data integration:
 
 | Metric | Standard | Enhanced | Improvement |
 |--------|----------|----------|-------------|
-| PnL    | -2108.31 | 212.91   | 2321.22 (110%) |
-| Sharpe | -0.13    | 0.14     | 0.27 (208%) |
-| Max DD | 3066.10  | 2607.00  | 459.10 (15%) |
+| PnL    | -3184.61 | -1239.22 | 1945.39 (61%) |
+| Sharpe | -2.19    | -0.20    | 1.99 (91%) |
+| Max DD | 3209.52  | 1850.66  | 1358.86 (42%) |
 
-## Applying Enhancements
+## Enhanced Notebooks
 
-Run the enhancement script to apply all updates:
-
-```bash
-python scripts/apply_enhancements.py --all
-```
-
-## Usage Examples
-
-The enhanced notebooks demonstrate:
+The notebooks in this repository demonstrate:
 
 1. **CEX Market Making**: Improved market signal integration
 2. **Onchain Market Making**: Latency impact analysis
