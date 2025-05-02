@@ -5,7 +5,7 @@ This script demonstrates how to properly use the market_data.py utility function
 with the crypto market making backtesting engine.
 
 Usage:
-    python integration_example.py
+    python scripts/integration_example.py
 """
 
 import os
@@ -42,6 +42,9 @@ def main():
     """Run the market data integration example"""
     print("=== Market Data Integration Example ===")
     
+    # Ensure visualizations directory exists
+    os.makedirs('visualizations', exist_ok=True)
+    
     # 1. Generate market data
     processor = DataProcessor()
     market_data = processor.simulate_market_data(
@@ -64,8 +67,8 @@ def main():
     # 3. Visualize market data with signals
     plt.figure(figsize=(12, 8))
     fig = plot_market_data(market_data.iloc[-200:], signals, title="BTC/USDT Market Analysis")
-    plt.savefig("market_data_analysis.png")
-    print("Market data visualization saved to market_data_analysis.png")
+    plt.savefig("visualizations/market_data_analysis.png")
+    print("Market data visualization saved to visualizations/market_data_analysis.png")
     
     # 4. Estimate optimal spread based on volatility
     volatility = market_data['volatility'].mean()
@@ -147,8 +150,8 @@ def main():
     plt.legend()
     
     plt.tight_layout()
-    plt.savefig("backtest_comparison.png")
-    print("Backtest comparison visualization saved to backtest_comparison.png")
+    plt.savefig("visualizations/backtest_comparison.png")
+    print("Backtest comparison visualization saved to visualizations/backtest_comparison.png")
     
     # 6. Analyze latency impact
     print("\nAnalyzing latency impact...")
@@ -169,8 +172,8 @@ def main():
     plt.ylabel('Frequency')
     plt.legend()
     plt.grid(True)
-    plt.savefig("latency_impact.png")
-    print("Latency impact visualization saved to latency_impact.png")
+    plt.savefig("visualizations/latency_impact.png")
+    print("Latency impact visualization saved to visualizations/latency_impact.png")
     
     print("\nIntegration example completed.")
 

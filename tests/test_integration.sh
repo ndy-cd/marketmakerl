@@ -15,6 +15,10 @@ elif [ -d ".venv" ]; then
     source .venv/bin/activate
 fi
 
+# Set Python path to include the project root
+export PYTHONPATH="$PYTHONPATH:$(pwd)"
+echo "Setting PYTHONPATH to include current directory: $PYTHONPATH"
+
 # Run the unit tests
 echo "Running unit tests..."
 python tests/test_market_data_integration.py
