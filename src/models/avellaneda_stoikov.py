@@ -29,6 +29,7 @@ class AvellanedaStoikovModel:
         self.volatility = volatility or 0.01  # Default volatility if not provided
         self.current_inventory = 0
         self.initial_time = datetime.now()
+        self.market_features = {}  # Initialize empty market features
         
     def set_parameters(self, risk_aversion=None, time_horizon=None, volatility=None, **kwargs):
         """
@@ -38,7 +39,7 @@ class AvellanedaStoikovModel:
             risk_aversion (float): Risk aversion parameter
             time_horizon (float): Time horizon in days
             volatility (float): Market volatility estimate
-            **kwargs: Additional parameters (ignored)
+            **kwargs: Additional parameters (including market_features)
         """
         if risk_aversion is not None:
             self.risk_aversion = risk_aversion
@@ -47,7 +48,7 @@ class AvellanedaStoikovModel:
         if volatility is not None:
             self.volatility = volatility
             
-        # Store market_features if provided for potential future use
+        # Store market_features if provided for future use
         if 'market_features' in kwargs:
             self.market_features = kwargs['market_features']
             
@@ -92,8 +93,40 @@ class AvellanedaStoikovModel:
         if abs(inventory_risk) > max_inventory_impact:
             inventory_risk = max_inventory_impact * np.sign(inventory_risk)
             
+        # Base reservation price from Avellaneda-Stoikov model
         reservation_price = mid_price - inventory_risk
         
+        # Apply adjustments based on market features if available
+        if self.market_features:
+            # Adjust for trend strength and momentum if available
+            trend_adjustment = 0
+            
+            if 'trend_strength' in self.market_features and 'momentum' in self.market_features:
+                trend_strength = self.market_features.get('trend_strength', 0)
+                momentum = self.market_features.get('momentum', 0)
+                
+                # If we have a strong trend with clear momentum, adjust reservation price
+                # to adapt to the market direction
+                if abs(momentum) > 0.001 and trend_strength > 0.001:
+                    # Scale adjustment by trend strength and momentum direction
+                    # Max adjustment is 0.1% of mid price for strong signals
+                    trend_adjustment = mid_price * min(0.001, trend_strength) * np.sign(momentum)
+                    
+            # Adjust for mean reversion signals
+            mean_reversion_adjustment = 0
+            if 'mean_reversion' in self.market_features:
+                mean_rev = self.market_features.get('mean_reversion', 0)
+                
+                # If price is far from mean and mean reversion signal is strong
+                if abs(mean_rev) > 0.002:
+                    # Apply adjustment (max 0.15% of mid price)
+                    mean_reversion_adjustment = mid_price * min(0.0015, abs(mean_rev)) * np.sign(mean_rev)
+            
+            # Apply combined adjustments to reservation price
+            reservation_price += trend_adjustment + mean_reversion_adjustment
+            
+            logger.debug(f"Market feature adjustments: Trend {trend_adjustment:.6f}, Mean Rev {mean_reversion_adjustment:.6f}")
+            
         return reservation_price
         
     def calculate_optimal_quotes(self, mid_price, spread_constraint=None):
@@ -124,6 +157,17 @@ class AvellanedaStoikovModel:
             # Calculate optimal spread based on the model
             gamma_sigma_squared = self.risk_aversion * self.volatility**2
             optimal_half_spread = (gamma_sigma_squared * time_remaining + (2/self.risk_aversion) * np.log(1 + self.risk_aversion/2)) / 2
+            
+            # Adjust spread based on market features if available
+            if self.market_features and 'spread_percentile' in self.market_features:
+                # If current market spread is high (in upper percentiles), we can widen our spread
+                spread_percentile = self.market_features.get('spread_percentile', 0.5)
+                
+                # Adjust spread by up to ±20% based on market spread percentile
+                spread_adjustment_factor = 0.8 + 0.4 * spread_percentile  # Range: 0.8 to 1.2
+                optimal_half_spread *= spread_adjustment_factor
+                
+                logger.debug(f"Spread adjustment factor: {spread_adjustment_factor:.4f} based on percentile {spread_percentile:.4f}")
             
             # Limit the spread to a reasonable value to prevent extreme quotes
             max_half_spread = mid_price * 0.005  # 0.5% of mid price

@@ -15,26 +15,43 @@ logger = logging.getLogger(__name__)
 class MarketDataHandler:
     """Handler for fetching and processing market data from exchanges"""
     
-    def __init__(self, exchange='binance', symbols=None):
+    def __init__(self, exchange='binance', api_key=None, api_secret=None):
         """
-        Initialize the market data handler
+        Initialize the MarketDataHandler
         
         Parameters:
-            exchange (str): Exchange name (default: 'binance')
-            symbols (list): List of symbol pairs to fetch data for
+            exchange (str): Exchange ID (e.g., 'binance', 'ftx')
+            api_key (str): API key for the exchange
+            api_secret (str): API secret for the exchange
         """
         self.exchange_name = exchange
-        self.symbols = symbols or []
+        self.api_key = api_key
+        self.api_secret = api_secret
         self.exchange = self._initialize_exchange()
         
     def _initialize_exchange(self):
-        """Initialize exchange connection"""
+        """Initialize the exchange connection"""
         try:
-            if self.exchange_name.lower() == 'binance':
-                return ccxt.binance()
-            # Add more exchanges as needed
-            else:
+            if self.exchange_name == 'simulation':
+                logger.info("Using simulation mode for market data")
+                return None  # No real exchange connection in simulation mode
+                
+            # For real exchanges, initialize ccxt
+            if not ccxt_available:
+                logger.error("CCXT library not available. Install with 'pip install ccxt'")
+                return None
+                
+            if self.exchange_name not in ccxt.exchanges:
                 raise ValueError(f"Exchange {self.exchange_name} not supported")
+                
+            exchange_class = getattr(ccxt, self.exchange_name)
+            exchange = exchange_class({
+                'apiKey': self.api_key,
+                'secret': self.api_secret
+            })
+            
+            logger.info(f"Successfully connected to {self.exchange_name}")
+            return exchange
         except Exception as e:
             logger.error(f"Failed to initialize exchange: {e}")
             raise

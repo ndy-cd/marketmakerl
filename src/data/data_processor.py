@@ -281,7 +281,7 @@ class DataProcessor:
         df['trend'] = np.where(df['ma_20'] > df['ma_50'], 'uptrend', 'downtrend')
         
         # Fill NaN values that result from window calculations
-        df = df.fillna(method='bfill').fillna(method='ffill').fillna(0)
+        df = df.bfill().ffill().fillna(0)
         
         return df
         

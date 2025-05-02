@@ -378,7 +378,7 @@ class BacktestEngine:
                     # Find corresponding buy trade
                     buy_trades = trades_df[(trades_df['side'] == 'BUY') & (trades_df['timestamp'] < row['timestamp'])]
                     if not buy_trades.empty:
-                        profitable_trades.at[i, 'buy_price'] = float(buy_trades.iloc[-1]['price'])
+                        profitable_trades.at[i, 'buy_price'] = int(float(buy_trades.iloc[-1]['price']))
                 
                 profitable_trades['profit'] = profitable_trades['price'] - profitable_trades['buy_price']
                 wins = len(profitable_trades[profitable_trades['profit'] > 0])

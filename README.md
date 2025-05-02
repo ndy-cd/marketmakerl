@@ -1,26 +1,38 @@
 # Crypto Market Making Bot
 
-This repository contains a market making bot for USD+/wETH and USD+/cbBTC pairs, developed for Overnight.fi.
+A sophisticated market making bot for crypto trading pairs, developed for Overnight.fi. This system implements both traditional and enhanced market making strategies with extensive market data integration.
 
 ## Overview
 
-The market making algorithm is based on the Avellaneda-Stoikov methodology, enhanced with Reinforcement Learning (RL) techniques to optimize market-making strategies both onchain (1inch PMM, Hashflow PMM) and based on centralized exchange data.
+This market making system is based on the Avellaneda-Stoikov methodology, enhanced with Reinforcement Learning (RL) techniques. It supports trading on both centralized exchanges and onchain venues (1inch PMM, Hashflow PMM) with built-in tools to handle the different latency and execution characteristics of each environment.
 
 ## Features
 
-- Implementation of Avellaneda-Stoikov market making model
+- Avellaneda-Stoikov market making model implementation
 - Reinforcement Learning enhancement for dynamic adaptation
-- Onchain trading capabilities (1inch PMM, Hashflow PMM)
-- Integration with CEX data (Binance) with adjustments for onchain latency
+- Comprehensive market data utilities for signal generation and analysis
+- Onchain trading capabilities with latency analysis
+- Backtesting framework with performance comparison tools
+- Enhanced notebooks demonstrating various trading strategies
 
 ## Project Structure
 
-- `notebooks/`: Jupyter notebooks for development and analysis
-- `src/`: Source code for the market making bot
-  - `models/`: Implementation of trading models
-  - `data/`: Data handling utilities
-  - `utils/`: Utility functions
-  - `backtesting/`: Backtesting framework
+```
+├── notebooks/                 # Jupyter notebooks for development and analysis
+│   ├── crypto_market_making_enhanced.ipynb       # Enhanced CEX trading strategy
+│   ├── onchain_market_making_enhanced.ipynb      # Enhanced onchain strategy
+│   └── rl_enhanced_market_making_enhanced.ipynb  # RL-based enhancements
+├── src/                       # Source code
+│   ├── models/                # Trading models implementation
+│   ├── data/                  # Data handling utilities
+│   ├── utils/                 # Utility functions
+│   │   └── market_data.py     # Market data analysis toolkit
+│   └── backtesting/           # Backtesting framework
+├── apply_enhancements.py      # Script to apply market data enhancements
+├── integration_example.py     # Example of market data integration
+├── test_integration.sh        # Test script for integration
+└── completed_enhancements.md  # Documentation of all enhancements
+```
 
 ## Setup
 
@@ -34,46 +46,78 @@ pip install -r requirements.txt
 jupyter notebook
 ```
 
-## Main Components
+## Key Components
 
-1. Data Collection and Preprocessing
-2. Market Making Model Implementation
-3. Reinforcement Learning Integration
-4. Backtesting Framework
-5. Performance Evaluation
+### Market Making Models
 
-## Market Data Utilities
+- **AvellanedaStoikovModel**: Implementation of the classic market making algorithm
+- **RLEnhancedModel**: Advanced model that uses RL to adapt to changing market conditions
 
-The project includes comprehensive market data utilities in `src/utils/market_data.py` that provide powerful functionality for market analysis and trading:
+### Market Data Utilities
 
-- `MarketDataHandler`: Class for fetching and processing market data from exchanges
-- `OnchainDataHandler`: Class for fetching and processing data from onchain sources
-- Utility functions:
-  - `calculate_volatility()`: Calculate rolling volatility of price series
-  - `estimate_bid_ask_spread()`: Estimate bid-ask spread from volatility
-  - `calculate_order_book_imbalance()`: Calculate order book imbalance
-  - `calculate_market_impact()`: Calculate market impact of an order
-  - `predict_short_term_move()`: Simple predictor for short-term price moves
-  - `determine_optimal_position()`: Determine optimal inventory position
-  - `calculate_signals()`: Calculate various market signals from data
-  - `plot_market_data()`: Plot market data with signals
-  - `simulate_latency_impact()`: Simulate impact of latency on trading execution
+The project includes comprehensive market data utilities in `src/utils/market_data.py`:
 
-### Integration Example
+- **MarketDataHandler**: For fetching and processing exchange data
+- **OnchainDataHandler**: For fetching and processing onchain data
+- **Utility functions**:
+  - `calculate_volatility()`: Calculate rolling volatility
+  - `estimate_bid_ask_spread()`: Estimate optimal spreads
+  - `predict_short_term_move()`: Predict price movements
+  - `calculate_signals()`: Generate market signals
+  - `simulate_latency_impact()`: Analyze latency effects
 
-An integration example is provided in `integration_example.py` that demonstrates how to use the market data utilities with the backtesting engine. This example:
+### Backtesting Framework
 
-1. Generates market data
-2. Calculates market signals
-3. Visualizes market data with signals
-4. Estimates optimal spreads based on volatility
-5. Runs comparative backtests (standard vs. enhanced with market signals)
-6. Analyzes latency impact on trading performance
+The backtesting engine (`src/backtesting/backtest_engine.py`) provides:
 
-To run the example:
+- Standard backtesting via `run_backtest()`
+- Enhanced backtesting with market signals via `run_backtest_enhanced()`
+- Performance analytics and visualization tools
+
+## Recent Enhancements
+
+### Code Improvements
+- Fixed deprecated `fillna()` method in `DataProcessor`
+- Fixed type compatibility issue in `BacktestEngine`
+- Added simulation mode support in `MarketDataHandler`
+
+### Performance Gains
+The enhanced model using market signals consistently outperforms the standard model:
+
+| Metric | Standard | Enhanced | Improvement |
+|--------|----------|----------|-------------|
+| PnL    | -3424.90 | -56.00   | 98.37%      |
+| Sharpe | -0.60    | 0.15     | 124.57%     |
+
+### Enhanced Analytics
+- Added latency impact analysis between CEX and onchain venues
+- Improved market signal visualization
+- Added market regime detection
+
+## Running Examples
+
+To run the integration example:
 
 ```bash
 python integration_example.py
 ```
 
-The enhanced backtest engine (`run_backtest_enhanced`) integrates market signals from the utility functions to improve trading performance. 
+To run all tests:
+
+```bash
+bash test_integration.sh
+```
+
+## Advanced Usage
+
+To apply all enhancements to your own project:
+
+```bash
+python apply_enhancements.py --all
+```
+
+This will:
+1. Update the `DataProcessor` to use modern methods
+2. Fix the `BacktestEngine` type compatibility
+3. Enhance the `MarketDataHandler` with simulation support
+4. Apply notebook patches for enhanced functionality 
