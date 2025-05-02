@@ -73,6 +73,15 @@ src copy/
 *copy*.md
 notebooks/deprecated/
 scripts/deprecated/
+docs/deprecated/
+notebooks/backup/
+*/backup/
+**/backup/
+backup/
+*/*.bak
+**/*.bak
+.backup/
+@backup/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

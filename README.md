@@ -43,9 +43,14 @@ This system provides an enhanced market making solution based on the Avellaneda-
 │
 ├── src/                      # Core source code
 │   ├── models/               # Trading models 
+│   │   ├── avellaneda_stoikov.py  # Base model implementation
+│   │   └── rl_enhanced_model.py   # RL enhancement wrapper
 │   ├── data/                 # Data handling
+│   │   └── data_processor.py      # Data cleaning and preparation
 │   ├── utils/                # Utilities
+│   │   └── market_data.py         # Market data analysis
 │   └── backtesting/          # Testing framework
+│       └── backtest_engine.py     # Backtesting implementation
 │
 ├── tests/                    # Testing
 │   ├── test_integration.sh        # Integration test script
@@ -91,9 +96,9 @@ The project includes robust market data integration:
 
 | Metric | Standard | Enhanced | Improvement |
 |--------|----------|----------|-------------|
-| PnL    | -3184.61 | -1239.22 | 1945.39 (61%) |
-| Sharpe | -2.19    | -0.20    | 1.99 (91%) |
-| Max DD | 3209.52  | 1850.66  | 1358.86 (42%) |
+| PnL    | -2771.86 | -22.18   | 2749.67 (99%) |
+| Sharpe | -0.81    | 0.08     | 0.90 (110%) |
+| Max DD | 2919.71  | 1849.52  | 1070.18 (37%) |
 
 ## Enhanced Notebooks
 
