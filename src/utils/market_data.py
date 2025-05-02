@@ -6,10 +6,197 @@ import seaborn as sns
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union, Tuple
 import time
+import ccxt
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+class MarketDataHandler:
+    """Handler for fetching and processing market data from exchanges"""
+    
+    def __init__(self, exchange='binance', api_key=None, api_secret=None):
+        """
+        Initialize the MarketDataHandler
+        
+        Parameters:
+            exchange (str): Exchange ID (e.g., 'binance', 'ftx')
+            api_key (str): API key for the exchange
+            api_secret (str): API secret for the exchange
+        """
+        self.exchange_name = exchange
+        self.api_key = api_key
+        self.api_secret = api_secret
+        self.exchange = self._initialize_exchange()
+        
+    def _initialize_exchange(self):
+        """Initialize the exchange connection"""
+        try:
+            if self.exchange_name == 'simulation':
+                logger.info("Using simulation mode for market data")
+                return None  # No real exchange connection in simulation mode
+                
+            # For real exchanges, initialize ccxt
+            if not ccxt_available:
+                logger.error("CCXT library not available. Install with 'pip install ccxt'")
+                return None
+                
+            if self.exchange_name not in ccxt.exchanges:
+                raise ValueError(f"Exchange {self.exchange_name} not supported")
+                
+            exchange_class = getattr(ccxt, self.exchange_name)
+            exchange = exchange_class({
+                'apiKey': self.api_key,
+                'secret': self.api_secret
+            })
+            
+            logger.info(f"Successfully connected to {self.exchange_name}")
+            return exchange
+        except Exception as e:
+            logger.error(f"Failed to initialize exchange: {e}")
+            raise
+            
+    def fetch_ohlcv(self, symbol, timeframe='1m', limit=1000, since=None):
+        """
+        Fetch OHLCV data for a symbol
+        
+        Parameters:
+            symbol (str): Trading pair symbol
+            timeframe (str): Timeframe for the data
+            limit (int): Number of candles to fetch
+            since (int): Timestamp in milliseconds for start time
+            
+        Returns:
+            pd.DataFrame: DataFrame with OHLCV data
+        """
+        try:
+            ohlcv = self.exchange.fetch_ohlcv(symbol, timeframe, limit=limit, since=since)
+            df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+            df.set_index('timestamp', inplace=True)
+            return df
+        except Exception as e:
+            logger.error(f"Error fetching OHLCV data for {symbol}: {e}")
+            return pd.DataFrame()
+            
+    def fetch_order_book(self, symbol, limit=100):
+        """
+        Fetch order book data for a symbol
+        
+        Parameters:
+            symbol (str): Trading pair symbol
+            limit (int): Depth of the order book
+            
+        Returns:
+            dict: Order book with bids and asks
+        """
+        try:
+            order_book = self.exchange.fetch_order_book(symbol, limit)
+            return {
+                'bids': pd.DataFrame(order_book['bids'], columns=['price', 'amount']),
+                'asks': pd.DataFrame(order_book['asks'], columns=['price', 'amount']),
+                'timestamp': datetime.fromtimestamp(order_book['timestamp']/1000) if 'timestamp' in order_book else datetime.now()
+            }
+        except Exception as e:
+            logger.error(f"Error fetching order book for {symbol}: {e}")
+            return {'bids': pd.DataFrame(), 'asks': pd.DataFrame(), 'timestamp': datetime.now()}
+            
+    def calculate_market_metrics(self, symbol, lookback_periods=20):
+        """
+        Calculate key market metrics for a symbol
+        
+        Parameters:
+            symbol (str): Trading pair symbol
+            lookback_periods (int): Number of periods to look back
+            
+        Returns:
+            dict: Dictionary of market metrics
+        """
+        try:
+            # Fetch recent data
+            ohlcv = self.fetch_ohlcv(symbol, limit=lookback_periods)
+            
+            # Calculate volatility (standard deviation of returns)
+            returns = ohlcv['close'].pct_change().dropna()
+            volatility = returns.std()
+            
+            # Calculate average volume
+            avg_volume = ohlcv['volume'].mean()
+            
+            # Get current order book
+            order_book = self.fetch_order_book(symbol)
+            
+            # Calculate bid-ask spread
+            if not order_book['bids'].empty and not order_book['asks'].empty:
+                best_bid = order_book['bids']['price'].iloc[0]
+                best_ask = order_book['asks']['price'].iloc[0]
+                spread = (best_ask - best_bid) / best_bid
+            else:
+                best_bid = best_ask = spread = np.nan
+                
+            return {
+                'volatility': volatility,
+                'avg_volume': avg_volume,
+                'best_bid': best_bid,
+                'best_ask': best_ask,
+                'spread': spread,
+                'mid_price': (best_bid + best_ask) / 2 if not np.isnan(best_bid) and not np.isnan(best_ask) else np.nan
+            }
+        except Exception as e:
+            logger.error(f"Error calculating market metrics for {symbol}: {e}")
+            return {
+                'volatility': np.nan,
+                'avg_volume': np.nan,
+                'best_bid': np.nan,
+                'best_ask': np.nan,
+                'spread': np.nan,
+                'mid_price': np.nan
+            }
+            
+    def simulate_latency(self, base_latency=100, jitter=50):
+        """
+        Simulate network latency for onchain trading
+        
+        Parameters:
+            base_latency (int): Base latency in milliseconds
+            jitter (int): Random jitter range in milliseconds
+            
+        Returns:
+            None: Just sleeps for the simulated latency
+        """
+        latency = base_latency + np.random.randint(-jitter, jitter)
+        time.sleep(max(0, latency/1000))  # Convert to seconds and sleep
+
+class OnchainDataHandler:
+    """Handler for fetching and processing data from onchain sources"""
+    
+    def __init__(self, provider_url=None):
+        """
+        Initialize the onchain data handler
+        
+        Parameters:
+            provider_url (str): Ethereum provider URL
+        """
+        self.provider_url = provider_url
+        # This would be expanded with real onchain data handling using web3.py
+        
+    def fetch_pool_data(self, pool_address):
+        """
+        Fetch data for a specific liquidity pool
+        
+        Parameters:
+            pool_address (str): Contract address of the pool
+            
+        Returns:
+            dict: Pool data including reserves, fees, etc.
+        """
+        # This is a placeholder. In a real implementation, this would use web3.py to query the pool
+        return {
+            'reserves': [0, 0],
+            'fees': 0.003,
+            'price': 0,
+            'timestamp': datetime.now()
+        }
 
 def calculate_volatility(prices, window=20, annualize=True):
     """

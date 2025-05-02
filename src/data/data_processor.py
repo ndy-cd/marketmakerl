@@ -200,30 +200,90 @@ class DataProcessor:
         elif 'mid_price' in data.columns:
             data['returns'] = data['mid_price'].pct_change()
         else:
-            logger.warning("No price column found for returns calculation")
-            return data
+            logger.warning("No suitable price column found for calculating returns")
             
-        # Calculate volatility (annualized)
-        data['volatility'] = data['returns'].rolling(window=volatility_window).std() * np.sqrt(252 * 24 * 60)
+        # Add technical features
+        return self.add_technical_features(data, volatility_window)
         
-        # Calculate spread if bid/ask not available
-        if 'bid' not in data.columns or 'ask' not in data.columns:
-            # Estimate spread from volatility if not available
-            data['spread'] = data['volatility'] / 10
+    def add_technical_features(self, data, window=20):
+        """
+        Add technical analysis features to market data
+        
+        Parameters:
+            data (pd.DataFrame): Market data with OHLCV columns
+            window (int): Window size for calculations
+            
+        Returns:
+            pd.DataFrame: DataFrame with added technical features
+        """
+        # Make a copy to avoid modifying the original
+        df = data.copy()
+        
+        # Ensure we have a price column for calculations
+        if 'close' in df.columns:
+            price_col = 'close'
+        elif 'mid_price' in df.columns:
+            price_col = 'mid_price'
         else:
-            data['spread'] = (data['ask'] - data['bid']) / data['mid_price']
+            logger.warning("No suitable price column found for technical analysis")
+            return df
             
-        # Calculate spread moving average
-        data['spread_ma'] = data['spread'].rolling(window=spread_window).mean()
+        # Calculate basic returns if not already present
+        if 'returns' not in df.columns:
+            df['returns'] = df[price_col].pct_change()
+            
+        # Volatility (standard deviation of returns)
+        df['volatility'] = df['returns'].rolling(window=window).std()
         
-        # Calculate order imbalance (if available)
-        if 'bid_volume' in data.columns and 'ask_volume' in data.columns:
-            data['order_imbalance'] = (data['bid_volume'] - data['ask_volume']) / (data['bid_volume'] + data['ask_volume'])
+        # Add mid price if not present
+        if 'mid_price' not in df.columns:
+            if all(col in df.columns for col in ['high', 'low']):
+                df['mid_price'] = (df['high'] + df['low']) / 2
+            else:
+                df['mid_price'] = df[price_col]
+                
+        # Moving averages
+        df['ma_20'] = df[price_col].rolling(window=20).mean()
+        df['ma_50'] = df[price_col].rolling(window=50).mean()
         
-        # Fill NaN values
-        data = data.fillna(method='bfill')
+        # Relative Strength Index (RSI)
+        delta = df[price_col].diff()
+        gain = delta.where(delta > 0, 0).rolling(window=14).mean()
+        loss = -delta.where(delta < 0, 0).rolling(window=14).mean()
+        rs = gain / loss
+        df['rsi'] = 100 - (100 / (1 + rs))
         
-        return data
+        # Bollinger Bands
+        df['bb_middle'] = df[price_col].rolling(window=20).mean()
+        df['bb_std'] = df[price_col].rolling(window=20).std()
+        df['bb_upper'] = df['bb_middle'] + 2 * df['bb_std']
+        df['bb_lower'] = df['bb_middle'] - 2 * df['bb_std']
+        
+        # MACD
+        df['ema_12'] = df[price_col].ewm(span=12, adjust=False).mean()
+        df['ema_26'] = df[price_col].ewm(span=26, adjust=False).mean()
+        df['macd'] = df['ema_12'] - df['ema_26']
+        df['macd_signal'] = df['macd'].ewm(span=9, adjust=False).mean()
+        df['macd_hist'] = df['macd'] - df['macd_signal']
+        
+        # Spread calculations if bid/ask available
+        if all(col in df.columns for col in ['bid_price', 'ask_price']):
+            df['spread'] = (df['ask_price'] - df['bid_price']) / df['mid_price']
+            df['spread_ma'] = df['spread'].rolling(window=window).mean()
+            df['spread_std'] = df['spread'].rolling(window=window).std()
+            df['spread_z'] = (df['spread'] - df['spread_ma']) / df['spread_std']
+        
+        # Add custom features for market making
+        # Market regime detection (simplified)
+        df['regime'] = np.where(df['volatility'] > df['volatility'].rolling(window=50).mean(), 'high_vol', 'low_vol')
+        
+        # Trend detection
+        df['trend'] = np.where(df['ma_20'] > df['ma_50'], 'uptrend', 'downtrend')
+        
+        # Fill NaN values that result from window calculations
+        df = df.bfill().ffill().fillna(0)
+        
+        return df
         
     def simulate_market_data(self, n_periods=1000, initial_price=1000, 
                              volatility=0.01, mean_reversion=0.1, 
@@ -306,15 +366,7 @@ class DataProcessor:
         
     def sync_cex_with_onchain(self, cex_data, onchain_data, latency=30):
         """
-        Synchronize CEX data with onchain data accounting for latency
-        
-        Parameters:
-            cex_data (pd.DataFrame): CEX market data
-            onchain_data (pd.DataFrame): Onchain market data
-            latency (int): Onchain latency in seconds
-            
-        Returns:
-            pd.DataFrame: Synchronized data
+        Synchronize CEX data with onchain data, accounting for latency
         """
         # Make copies to avoid modifying originals
         cex = cex_data.copy()
@@ -340,4 +392,70 @@ class DataProcessor:
         # Merge the datasets
         merged = pd.merge(cex, onchain, left_index=True, right_index=True, suffixes=('_cex', '_onchain'))
         
-        return merged 
+        return merged
+        
+    def simulate_onchain_data(self, cex_data, latency_range=(300, 800), fee_range=(0.002, 0.008), gas_cost_factor=1.2):
+        """
+        Simulate onchain data based on CEX data with added latency and fees
+        
+        Parameters:
+            cex_data (pd.DataFrame): CEX market data
+            latency_range (tuple): Range of latency in milliseconds (min, max)
+            fee_range (tuple): Range of fees as fraction (min, max)
+            gas_cost_factor (float): Factor to account for gas costs
+            
+        Returns:
+            pd.DataFrame: Simulated onchain data
+        """
+        # Make a copy to avoid modifying the original
+        onchain_data = cex_data.copy()
+        
+        # Add random latency to timestamps (simulate that onchain data is delayed)
+        # This is just for simulation purposes - in reality timestamps would reflect when data is received
+        min_latency, max_latency = latency_range
+        latency_ms = np.random.uniform(min_latency, max_latency, size=len(onchain_data))
+        latency_offsets = pd.TimedeltaIndex(latency_ms, unit='ms')
+        
+        # Adjust prices to account for wider spreads and fees
+        min_fee, max_fee = fee_range
+        fees = np.random.uniform(min_fee, max_fee, size=len(onchain_data))
+        
+        # Add columns for onchain-specific data
+        onchain_data['cex_price'] = onchain_data['close'].copy()
+        onchain_data['latency_ms'] = latency_ms
+        onchain_data['fee_pct'] = fees * 100  # Convert to percentage
+        
+        # Adjust bid/ask to account for wider spreads on-chain
+        # In onchain markets, spreads are typically wider due to gas costs, MEV, etc.
+        if 'spread' in onchain_data.columns:
+            # If spread already exists, widen it
+            onchain_data['spread'] = onchain_data['spread'] * gas_cost_factor
+        else:
+            # Create a synthetic spread
+            base_spread = 0.001  # 0.1% base spread
+            onchain_data['spread'] = base_spread * gas_cost_factor * (1 + fees)
+        
+        # Calculate bid and ask prices
+        onchain_data['mid_price'] = onchain_data['close']
+        onchain_data['bid_price'] = onchain_data['mid_price'] * (1 - onchain_data['spread']/2)
+        onchain_data['ask_price'] = onchain_data['mid_price'] * (1 + onchain_data['spread']/2)
+        
+        # Add gas cost estimates (simplified version)
+        avg_gas_price = 50  # Gwei
+        avg_gas_used = 150000  # For a swap
+        eth_price = onchain_data['close'].mean()  # Use as approximation
+        gas_cost_usd = (avg_gas_price * 1e-9) * avg_gas_used * eth_price
+        onchain_data['gas_cost_usd'] = gas_cost_usd
+        
+        # Add simulated slippage based on trade size
+        # This is a placeholder for a more sophisticated slippage model
+        onchain_data['slippage_1eth_pct'] = 0.05  # 0.05% slippage for 1 ETH trade
+        onchain_data['slippage_10eth_pct'] = 0.2   # 0.2% slippage for 10 ETH trade
+        
+        # Calculate effective price after all costs for different trade sizes
+        onchain_data['effective_buy_price_1eth'] = onchain_data['ask_price'] * (1 + onchain_data['slippage_1eth_pct']/100) + (gas_cost_usd / 1)
+        onchain_data['effective_buy_price_10eth'] = onchain_data['ask_price'] * (1 + onchain_data['slippage_10eth_pct']/100) + (gas_cost_usd / 10)
+        
+        logger.info(f"Generated onchain data with latency range {latency_range}ms and fee range {fee_range}")
+        
+        return onchain_data 

@@ -343,6 +343,10 @@ class RLEnhancedModel:
         """
         self.base_model.set_parameters(**kwargs)
         
+        # Store market features if provided
+        if 'market_features' in kwargs:
+            self.market_features = kwargs['market_features']
+        
     def calculate_optimal_quotes(self, mid_price, market_features=None):
         """
         Calculate optimal bid and ask prices using RL enhancement
@@ -352,13 +356,14 @@ class RLEnhancedModel:
             market_features (dict): Additional market features for RL input
             
         Returns:
-            tuple: (bid_price, ask_price, bid_size, ask_size)
+            tuple: (bid_price, ask_price)
         """
+        # Use market_features from parameters if not provided directly
+        if market_features is None and hasattr(self, 'market_features'):
+            market_features = self.market_features
+            
         # Get base model quotes
         base_bid, base_ask = self.base_model.calculate_optimal_quotes(mid_price)
-        
-        # Default sizes
-        bid_size = ask_size = 1
         
         # If we have a trained RL model, use it to adjust the quotes
         if self.rl_model is not None and market_features is not None:
@@ -376,15 +381,55 @@ class RLEnhancedModel:
             bid_price = base_bid * (1 + bid_offset)
             ask_price = base_ask * (1 + ask_offset)
             
-            # Calculate order sizes (this would depend on your implementation)
-            max_inventory = 100  # Example value
-            bid_size = int(bid_size_norm * max_inventory)
-            ask_size = int(ask_size_norm * max_inventory)
+            # Consider market signals for further adjustments
+            if 'trend_strength' in market_features and 'momentum' in market_features:
+                trend = market_features['trend_strength']
+                momentum = market_features['momentum']
+                
+                # If strong trend with momentum, adjust quotes to capture movement
+                if abs(momentum) > 0.002 and trend > 0.001:
+                    adjustment = min(0.001, abs(momentum)) * (1 if momentum > 0 else -1)
+                    bid_price += mid_price * adjustment
+                    ask_price += mid_price * adjustment
             
-            return bid_price, ask_price, bid_size, ask_size
+            # Handle volatility-based spread adjustments
+            if 'volatility' in market_features:
+                volatility = market_features['volatility']
+                # During high volatility, widen spread to reduce risk
+                if volatility > 0.02:  # Higher than normal volatility
+                    volatility_factor = min(1.5, 1 + (volatility - 0.02) * 10)  # Cap at 50% increase
+                    mid = (bid_price + ask_price) / 2
+                    half_spread = (ask_price - bid_price) / 2
+                    new_half_spread = half_spread * volatility_factor
+                    bid_price = mid - new_half_spread
+                    ask_price = mid + new_half_spread
+            
+            # Handle mean reversion signals
+            if 'mean_reversion' in market_features:
+                mean_rev = market_features['mean_reversion']
+                if abs(mean_rev) > 0.005:  # Strong mean reversion signal
+                    # Adjust both bid and ask in direction of expected reversion
+                    # but maintain spread
+                    adjustment = mid_price * min(0.001, abs(mean_rev) / 10) * np.sign(mean_rev)
+                    bid_price += adjustment
+                    ask_price += adjustment
+            
+            # If price_move_signal is available, use it for short-term prediction
+            if 'price_move_signal' in market_features:
+                move_signal = market_features['price_move_signal']
+                # Adjust quotes based on predicted price movement (positive = up, negative = down)
+                signal_adjustment = move_signal * mid_price * 0.0005  # 0.05% max adjustment
+                if move_signal > 0:  # Expected upward move: raise bid more than ask
+                    bid_price += signal_adjustment
+                    ask_price += signal_adjustment * 0.5
+                else:  # Expected downward move: lower ask more than bid
+                    bid_price += signal_adjustment * 0.5
+                    ask_price += signal_adjustment
+            
+            return bid_price, ask_price
         
-        # If no RL model, return base model prices with default sizes
-        return base_bid, base_ask, bid_size, ask_size
+        # If no RL model, return base model prices
+        return base_bid, base_ask
         
     def _prepare_state(self, mid_price, market_features):
         """
