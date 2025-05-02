@@ -343,6 +343,10 @@ class RLEnhancedModel:
         """
         self.base_model.set_parameters(**kwargs)
         
+        # Store market features if provided
+        if 'market_features' in kwargs:
+            self.market_features = kwargs['market_features']
+        
     def calculate_optimal_quotes(self, mid_price, market_features=None):
         """
         Calculate optimal bid and ask prices using RL enhancement
@@ -352,14 +356,15 @@ class RLEnhancedModel:
             market_features (dict): Additional market features for RL input
             
         Returns:
-            tuple: (bid_price, ask_price, bid_size, ask_size)
+            tuple: (bid_price, ask_price)
         """
         # Get base model quotes
         base_bid, base_ask = self.base_model.calculate_optimal_quotes(mid_price)
         
-        # Default sizes
-        bid_size = ask_size = 1
-        
+        # Use market_features from parameters if not provided directly
+        if market_features is None and hasattr(self, 'market_features'):
+            market_features = self.market_features
+            
         # If we have a trained RL model, use it to adjust the quotes
         if self.rl_model is not None and market_features is not None:
             # Prepare state for RL model
@@ -376,15 +381,21 @@ class RLEnhancedModel:
             bid_price = base_bid * (1 + bid_offset)
             ask_price = base_ask * (1 + ask_offset)
             
-            # Calculate order sizes (this would depend on your implementation)
-            max_inventory = 100  # Example value
-            bid_size = int(bid_size_norm * max_inventory)
-            ask_size = int(ask_size_norm * max_inventory)
+            # Consider market signals for further adjustments
+            if 'trend_strength' in market_features and 'momentum' in market_features:
+                trend = market_features['trend_strength']
+                momentum = market_features['momentum']
+                
+                # If strong trend with momentum, adjust quotes to capture movement
+                if abs(momentum) > 0.002 and trend > 0.001:
+                    adjustment = min(0.001, abs(momentum)) * (1 if momentum > 0 else -1)
+                    bid_price += mid_price * adjustment
+                    ask_price += mid_price * adjustment
             
-            return bid_price, ask_price, bid_size, ask_size
+            return bid_price, ask_price
         
-        # If no RL model, return base model prices with default sizes
-        return base_bid, base_ask, bid_size, ask_size
+        # If no RL model, return base model prices
+        return base_bid, base_ask
         
     def _prepare_state(self, mid_price, market_features):
         """

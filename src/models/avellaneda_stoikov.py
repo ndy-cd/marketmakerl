@@ -30,7 +30,7 @@ class AvellanedaStoikovModel:
         self.current_inventory = 0
         self.initial_time = datetime.now()
         
-    def set_parameters(self, risk_aversion=None, time_horizon=None, volatility=None):
+    def set_parameters(self, risk_aversion=None, time_horizon=None, volatility=None, **kwargs):
         """
         Update model parameters
         
@@ -38,6 +38,7 @@ class AvellanedaStoikovModel:
             risk_aversion (float): Risk aversion parameter
             time_horizon (float): Time horizon in days
             volatility (float): Market volatility estimate
+            **kwargs: Additional parameters (ignored)
         """
         if risk_aversion is not None:
             self.risk_aversion = risk_aversion
@@ -45,6 +46,10 @@ class AvellanedaStoikovModel:
             self.time_horizon = time_horizon
         if volatility is not None:
             self.volatility = volatility
+            
+        # Store market_features if provided for potential future use
+        if 'market_features' in kwargs:
+            self.market_features = kwargs['market_features']
             
     def update_inventory(self, inventory):
         """
@@ -81,6 +86,12 @@ class AvellanedaStoikovModel:
             return mid_price
             
         inventory_risk = self.risk_aversion * self.volatility**2 * self.current_inventory * time_remaining
+        
+        # Limit the impact of inventory risk to prevent extreme prices
+        max_inventory_impact = mid_price * 0.005  # 0.5% of mid price
+        if abs(inventory_risk) > max_inventory_impact:
+            inventory_risk = max_inventory_impact * np.sign(inventory_risk)
+            
         reservation_price = mid_price - inventory_risk
         
         return reservation_price
@@ -114,6 +125,10 @@ class AvellanedaStoikovModel:
             gamma_sigma_squared = self.risk_aversion * self.volatility**2
             optimal_half_spread = (gamma_sigma_squared * time_remaining + (2/self.risk_aversion) * np.log(1 + self.risk_aversion/2)) / 2
             
+            # Limit the spread to a reasonable value to prevent extreme quotes
+            max_half_spread = mid_price * 0.005  # 0.5% of mid price
+            optimal_half_spread = min(optimal_half_spread, max_half_spread)
+            
             # Apply spread constraint if provided
             if spread_constraint and 2 * optimal_half_spread < spread_constraint:
                 optimal_half_spread = spread_constraint / 2
@@ -121,6 +136,12 @@ class AvellanedaStoikovModel:
             # Calculate optimal bid and ask
             bid_price = reservation_price - optimal_half_spread
             ask_price = reservation_price + optimal_half_spread
+            
+            # Ensure bid and ask are reasonable relative to mid price
+            # Prevent bid and ask from being too far from mid price
+            max_price_deviation = mid_price * 0.01  # 1% of mid price
+            bid_price = max(mid_price - max_price_deviation, bid_price)
+            ask_price = min(mid_price + max_price_deviation, ask_price)
             
             logger.debug(f"Mid price: {mid_price}, Reservation price: {reservation_price}, Bid: {bid_price}, Ask: {ask_price}")
             

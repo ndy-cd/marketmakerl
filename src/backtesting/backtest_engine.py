@@ -1,4 +1,4 @@
- import numpy as np
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import logging
@@ -6,6 +6,7 @@ import os
 from datetime import datetime, timedelta
 from src.models.avellaneda_stoikov import AvellanedaStoikovModel
 from src.models.rl_enhanced_model import RLEnhancedModel
+from src.utils.market_data import calculate_signals, determine_optimal_position, predict_short_term_move
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -123,6 +124,130 @@ class BacktestEngine:
         self._calculate_performance_metrics()
         
         logger.info(f"Backtest completed. Final PnL: {self.metrics['total_pnl']:.2f}")
+        
+        return {
+            'metrics': self.metrics,
+            'trades': pd.DataFrame(self.trades) if self.trades else pd.DataFrame(),
+            'positions': pd.DataFrame(self.positions) if self.positions else pd.DataFrame()
+        }
+        
+    def run_backtest_enhanced(self, model, params=None, max_inventory=100, volatility_window=20, use_signals=True):
+        """
+        Run an enhanced backtest using the given model with additional market signals
+        
+        Parameters:
+            model: Market making model object (AvellanedaStoikovModel or RLEnhancedModel)
+            params (dict): Parameters for the model
+            max_inventory (int): Maximum allowed inventory
+            volatility_window (int): Window size for volatility calculation
+            use_signals (bool): Whether to use additional market signals
+            
+        Returns:
+            dict: Performance metrics and trading history
+        """
+        self.reset()
+        
+        # Set model parameters if provided
+        if params and hasattr(model, 'set_parameters'):
+            model.set_parameters(**params)
+        
+        # Calculate volatility if needed
+        if 'volatility' not in self.market_data.columns:
+            self.market_data['returns'] = self.market_data['mid_price'].pct_change()
+            self.market_data['volatility'] = self.market_data['returns'].rolling(window=volatility_window).std()
+            
+        # Fill NaN values in volatility
+        self.market_data['volatility'] = self.market_data['volatility'].fillna(0.01)
+        
+        logger.info(f"Starting enhanced backtest with {len(self.market_data)} data points")
+        
+        for i, (timestamp, row) in enumerate(self.market_data.iterrows()):
+            mid_price = row['mid_price']
+            volatility = row['volatility']
+            
+            # Calculate market signals for a more informed strategy
+            market_features = {}
+            if use_signals and i >= 100:  # Need enough data for signals
+                market_window = self.market_data.iloc[max(0, i-100):i+1]
+                try:
+                    signals = calculate_signals(market_window, lookback=min(50, i))
+                    market_features.update(signals)
+                    
+                    # Predict short-term price movement
+                    price_series = market_window['mid_price'].iloc[-20:]
+                    move_prediction = predict_short_term_move(price_series)
+                    market_features['price_move_signal'] = move_prediction
+                    
+                    # Get optimal position based on market conditions
+                    risk_aversion = 1.0
+                    if hasattr(model, 'risk_aversion'):
+                        risk_aversion = model.risk_aversion
+                        
+                    optimal_position = determine_optimal_position(
+                        mid_price=mid_price,
+                        inventory=self.inventory,
+                        volatility=volatility,
+                        risk_aversion=risk_aversion
+                    )
+                    market_features['optimal_position'] = optimal_position
+                except Exception as e:
+                    logger.warning(f"Error calculating market signals: {e}")
+            
+            # Update model with current inventory and volatility
+            model.update_inventory(self.inventory)
+            if hasattr(model, 'set_parameters'):
+                params_update = {'volatility': volatility}
+                if market_features:
+                    params_update['market_features'] = market_features
+                model.set_parameters(**params_update)
+                
+            # Get model quotes
+            bid_price, ask_price = model.calculate_optimal_quotes(mid_price)
+            
+            # Adjust quotes based on short-term price prediction if available
+            if 'price_move_signal' in market_features:
+                move_signal = market_features['price_move_signal']
+                # Adjust quotes based on predicted price movement (positive = up, negative = down)
+                signal_adjustment = move_signal * mid_price * 0.0005  # 0.05% max adjustment
+                if move_signal > 0:  # Expected upward move: raise bid more than ask
+                    bid_price += signal_adjustment
+                    ask_price += signal_adjustment * 0.5
+                else:  # Expected downward move: lower ask more than bid
+                    bid_price += signal_adjustment * 0.5
+                    ask_price += signal_adjustment
+            
+            # Simulate market interactions (simple model)
+            bid_executed, ask_executed = self._simulate_executions(bid_price, ask_price, row)
+            
+            # Process trades and update positions
+            if bid_executed:
+                self._process_trade(timestamp, 'BUY', bid_price, 1, mid_price)
+                
+            if ask_executed and self.inventory > 0:
+                self._process_trade(timestamp, 'SELL', ask_price, 1, mid_price)
+            
+            # Check inventory limits
+            if abs(self.inventory) >= max_inventory:
+                # Force liquidation at market price with penalty
+                liquidation_size = self.inventory
+                liquidation_price = mid_price * (0.98 if self.inventory > 0 else 1.02)
+                self._process_trade(timestamp, 'LIQUIDATION', liquidation_price, -liquidation_size, mid_price)
+                logger.warning(f"Forced liquidation at step {i}, inventory: {self.inventory}")
+                
+            # Record position at this step
+            self.positions.append({
+                'timestamp': timestamp,
+                'mid_price': mid_price,
+                'inventory': self.inventory,
+                'capital': self.capital,
+                'unrealized_pnl': self._calculate_unrealized_pnl(mid_price),
+                'total_value': self.capital + self._calculate_unrealized_pnl(mid_price)
+            })
+            
+        # Calculate final metrics
+        self._calculate_performance_metrics()
+        
+        logger.info(f"Enhanced backtest completed. Final PnL: {self.metrics['total_pnl']:.2f}")
         
         return {
             'metrics': self.metrics,
@@ -253,7 +378,7 @@ class BacktestEngine:
                     # Find corresponding buy trade
                     buy_trades = trades_df[(trades_df['side'] == 'BUY') & (trades_df['timestamp'] < row['timestamp'])]
                     if not buy_trades.empty:
-                        profitable_trades.at[i, 'buy_price'] = buy_trades.iloc[-1]['price']
+                        profitable_trades.at[i, 'buy_price'] = float(buy_trades.iloc[-1]['price'])
                 
                 profitable_trades['profit'] = profitable_trades['price'] - profitable_trades['buy_price']
                 wins = len(profitable_trades[profitable_trades['profit'] > 0])
