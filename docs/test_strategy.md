@@ -13,7 +13,7 @@ Validate all project flows that do not require exchange credentials and stress b
 1. `make build`
 2. `make test`
 3. `make live-guard` (must fail with expected env-var error)
-4. Backtest campaign: run `make run-backtest` at least 10 times and collect `exec_agent_1` metrics
+4. Backtest campaign: run `make campaign N=10` and collect aggregated metrics from campaign report
 
 ## Acceptance Criteria
 - All non-live commands succeed with exit code 0

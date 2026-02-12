@@ -1,73 +1,71 @@
-# Market Data Integration Enhancements
+# Completed Enhancements
 
-This document outlines the market data integration enhancements that have been implemented in the MVP version of the crypto market making system.
+This document summarizes enhancements that are implemented now and aligned with the current codebase.
 
-## Summary
+## Runtime and Reliability
 
-All core enhancements have been successfully implemented and tested. The market data integration provides significant performance improvements across all trading strategies.
+1. Docker-first runtime is implemented.
+- Files: `Dockerfile`, `docker-compose.yml`, `docker/requirements.runtime.txt`
+- Commands: `make build`, `make run-backtest`, `make validate`
 
-## Key Enhancements
+2. Unified command surface is implemented.
+- File: `Makefile`
+- Commands include: `compose-config`, `test-unit`, `test-integration`, `campaign`, `real-data-fetch`
 
-### 1. Code Improvements
+3. Multi-agent runtime orchestration is implemented.
+- Files: `scripts/run_agents.py`, `src/agents/base.py`, `config/config.yaml`
+- Roles: `data`, `ml`, `execution`, `risk`
+- Modes: `backtest`, `paper`, `live` (guarded)
 
-| Component | Enhancement | Benefit |
-|-----------|-------------|---------|
-| DataProcessor | Fixed deprecated `fillna()` method | Future-proof code, better data handling |
-| BacktestEngine | Fixed type compatibility issue | Eliminated runtime errors in calculations |
-| MarketDataHandler | Added simulation mode | Test without live API connections |
+## Data and Signal Pipeline
 
-### 2. Enhanced Notebooks
+1. Simulated data and preprocessing are implemented.
+- File: `src/data/data_processor.py`
 
-| Notebook | Enhancement | Benefit |
-|----------|-------------|---------|
-| crypto_market_making_enhanced.ipynb | Added signal calculation | Better market timing decisions |
-| onchain_market_making_enhanced.ipynb | Added latency simulation | Improved onchain performance analysis |
-| rl_enhanced_market_making_enhanced.ipynb | Market feature integration | Better model adaptation to market conditions |
+2. Market signal generation is implemented.
+- File: `src/utils/market_data.py`
+- Signals include volatility/trend/momentum/mean-reversion and spread-volume derivatives.
 
-### 3. Performance Improvements
+3. Real public market data snapshot module is implemented.
+- Files: `src/data/real_market_data.py`, `scripts/fetch_real_market_data.py`
+- Make target: `make real-data-fetch`
+- Outputs: `data/real/*_{klines,orderbook_bids,orderbook_asks,trades,meta}.*`
 
-Recent backtest results show significant improvements in the enhanced model:
+## Modeling and Backtesting
 
-| Metric | Standard | Enhanced | Improvement |
-|--------|----------|----------|-------------|
-| PnL    | -2108.31 | 212.91   | 2321.22 (110%) |
-| Sharpe | -0.13    | 0.14     | 0.27 (208%) |
-| Max DD | 3066.10  | 2607.00  | 459.10 (15%) |
+1. Baseline Avellaneda-Stoikov model is implemented.
+- File: `src/models/avellaneda_stoikov.py`
 
-## Implementation Details
+2. RL-enhanced model path is implemented (with Gym deprecation warning).
+- File: `src/models/rl_enhanced_model.py`
 
-### Market Signal Pipeline
+3. Standard and enhanced backtests are implemented.
+- File: `src/backtesting/backtest_engine.py`
+- Includes signal-aware and latency-influenced behavior.
 
-```
-Raw Data → Clean → Calculate Signals → Apply to Strategy → Backtest
-```
+## Validation Workflows
 
-The signal pipeline now calculates:
-- Volatility
-- Trend strength
-- Momentum
-- Mean reversion factors
-- Spread analysis
+1. Unit test discovery is implemented.
+- Command: `make test-unit`
+- Suite: `tests/test_*.py`
 
-### Applying Enhancements
+2. Integration workflow is implemented.
+- Command: `make test-integration`
+- Script: `tests/test_integration.sh`
+- Produces visualization artifacts in `visualizations/`
 
-The enhancement process is fully automated through the `apply_enhancements.py` script, which:
+3. Campaign testing is implemented.
+- Command: `make campaign N=10`
+- Report: `artifacts/campaign_<timestamp>/campaign_report.json`
 
-1. Creates backups of existing files
-2. Applies all necessary code fixes
-3. Generates enhanced notebook versions
-4. Runs validation tests
+4. Live mode safety guard is implemented.
+- Command: `make live-guard`
+- Expected behavior: fails without `EXCHANGE_API_KEY` and `EXCHANGE_API_SECRET`
 
-## Validation
+## Notes
 
-All enhancements have been validated through:
-
-1. **Unit Tests**: 8 tests covering core functionality
-2. **Integration Example**: Full workflow test with visualization
-3. **Performance Comparison**: Side-by-side comparison of standard vs. enhanced models
-
-## Next Steps
-
-1. **Testing**: Additional testing with varied market conditions
-2. **Tuning**: Optimize model parameters for specific trading pairs
-3. **Deployment**: Prepare for production environment 
+- This document is a summary. Canonical details are in:
+  - `docs/PROJECT_GUIDE.md`
+  - `docs/FEATURE_CATALOG.md`
+  - `docs/IMPLEMENTED_CHANGES.md`
+  - `docs/REAL_DATA_DEVELOPMENT_PLAN.md`
