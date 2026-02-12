@@ -148,8 +148,8 @@ make test-unit
 ```
 
 Expected:
-- `Ran 8 tests`
-- `OK`
+- All discovered `tests/test_*.py` suites pass
+- Final status `OK`
 
 ### Integration workflow
 
@@ -230,6 +230,8 @@ make build
 ## Related Docs
 
 - `README.md`: quick entrypoint
+- `docs/FEATURE_CATALOG.md`: full feature inventory with implementation status
+- `docs/IMPLEMENTED_CHANGES.md`: detailed record of implemented changes
 - `docs/completed_enhancements.md`: MVP enhancement summary
 - `docs/documentation_acceptance_checklist.md`: doc quality gate
 - `Makefile`: canonical command interface for run/test/validate

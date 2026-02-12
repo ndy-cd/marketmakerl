@@ -40,7 +40,7 @@ run-live:
 	$(MAKE) run MODE=live
 
 test-unit:
-	$(COMPOSE) run --rm agents python3 -m unittest tests/test_market_data_integration.py
+	$(COMPOSE) run --rm agents python3 -m unittest discover -s tests -p "test_*.py"
 
 test-integration:
 	$(COMPOSE) run --rm agents bash tests/test_integration.sh

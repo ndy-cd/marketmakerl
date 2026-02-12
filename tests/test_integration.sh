@@ -21,7 +21,7 @@ echo "Setting PYTHONPATH to include current directory: $PYTHONPATH"
 
 # Run the unit tests
 echo "Running unit tests..."
-python tests/test_market_data_integration.py
+python -m unittest discover -s tests -p "test_*.py"
 TEST_EXIT_CODE=$?
 
 # Run the integration example if tests succeeded

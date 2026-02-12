@@ -375,7 +375,12 @@ class DataProcessor:
         
     def sync_cex_with_onchain(self, cex_data, onchain_data, latency=30):
         """
-        Synchronize CEX data with onchain data, accounting for latency
+        Synchronize CEX data with onchain data, accounting for latency.
+
+        Parameters:
+            cex_data (pd.DataFrame): CEX market data with DatetimeIndex
+            onchain_data (pd.DataFrame): Onchain market data with DatetimeIndex
+            latency (int/float): Latency in seconds applied to onchain data
         """
         # Make copies to avoid modifying originals
         cex = cex_data.copy()
@@ -389,18 +394,53 @@ class DataProcessor:
         if not isinstance(onchain.index, pd.DatetimeIndex):
             logger.error("Onchain data must have a datetime index")
             return pd.DataFrame()
-        
-        # Shift onchain data to account for latency
-        onchain = onchain.shift(periods=int(latency/onchain.index.freq.delta.total_seconds()))
-        
-        # Resample both to a common frequency if needed
-        common_freq = min(onchain.index.freq, cex.index.freq)
-        cex = cex.resample(common_freq).interpolate()
-        onchain = onchain.resample(common_freq).interpolate()
-        
+
+        def _infer_step_seconds(index: pd.DatetimeIndex, default: float = 1.0) -> float:
+            inferred = pd.infer_freq(index)
+            if inferred:
+                return pd.to_timedelta(pd.tseries.frequencies.to_offset(inferred)).total_seconds()
+
+            diffs = index.to_series().diff().dropna().dt.total_seconds()
+            diffs = diffs[diffs > 0]
+            if len(diffs) > 0:
+                return float(diffs.median())
+            return default
+
+        def _seconds_to_freq(seconds: float) -> str:
+            if seconds <= 0:
+                return "1s"
+            if seconds >= 1 and float(seconds).is_integer():
+                return f"{int(seconds)}s"
+            ms = max(1, int(round(seconds * 1000)))
+            return f"{ms}ms"
+
+        step_onchain = _infer_step_seconds(onchain.index)
+        step_cex = _infer_step_seconds(cex.index)
+
+        # Shift onchain data to account for latency; keep deterministic integer period shift.
+        shift_periods = max(0, int(float(latency) / step_onchain))
+        onchain = onchain.shift(periods=shift_periods)
+
+        # Resample both to a common frequency based on the finer source cadence.
+        common_step = min(step_onchain, step_cex)
+        common_freq = _seconds_to_freq(common_step)
+
+        def _resample_mixed(frame: pd.DataFrame, freq: str) -> pd.DataFrame:
+            out = frame.resample(freq).asfreq()
+            numeric_cols = out.select_dtypes(include=[np.number]).columns
+            non_numeric_cols = out.columns.difference(numeric_cols)
+            if len(numeric_cols) > 0:
+                out.loc[:, numeric_cols] = out.loc[:, numeric_cols].interpolate()
+            if len(non_numeric_cols) > 0:
+                out.loc[:, non_numeric_cols] = out.loc[:, non_numeric_cols].ffill().bfill()
+            return out
+
+        cex = _resample_mixed(cex, common_freq)
+        onchain = _resample_mixed(onchain, common_freq)
+
         # Merge the datasets
         merged = pd.merge(cex, onchain, left_index=True, right_index=True, suffixes=('_cex', '_onchain'))
-        
+
         return merged
         
     def simulate_onchain_data(self, cex_data, latency_range=(300, 800), fee_range=(0.002, 0.008), gas_cost_factor=1.2):

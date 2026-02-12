@@ -9,6 +9,8 @@ Market making research and simulation framework with:
 ## Start Here
 
 - Canonical guide: `docs/PROJECT_GUIDE.md`
+- Feature catalog: `docs/FEATURE_CATALOG.md`
+- Implemented change log: `docs/IMPLEMENTED_CHANGES.md`
 - Multi-agent team spec: `agent_ops/team.yaml`
 - Runtime config: `config/config.yaml`
 
