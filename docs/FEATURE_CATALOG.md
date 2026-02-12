@@ -40,12 +40,18 @@ This file documents all current features and their implementation status.
 - Functions: `connect_exchange`, `fetch_historical_data`
 - Notes: public market data can be fetched without private API keys for supported venues.
 
-4. CEX-onchain synchronization (`Implemented`)
+4. Real snapshot collector module (`Implemented`)
+- File: `src/data/real_market_data.py`
+- Functions: `fetch_klines`, `fetch_order_book`, `fetch_trades`, `fetch_snapshot`, `save_snapshot`
+- Script: `scripts/fetch_real_market_data.py`
+- Notes: optimized for lightweight snapshot polling and storage.
+
+5. CEX-onchain synchronization (`Implemented`)
 - File: `src/data/data_processor.py`
 - Function: `sync_cex_with_onchain`
 - Notes: fixed frequency-inference and mixed-dtype resampling issues.
 
-5. Onchain data handler (`Placeholder`)
+6. Onchain data handler (`Placeholder`)
 - File: `src/utils/market_data.py`
 - Class: `OnchainDataHandler`
 - Notes: returns stub pool payload; no real RPC/indexer integration yet.

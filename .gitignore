@@ -85,6 +85,7 @@ backup/
 
 # Runtime outputs
 artifacts/
+data/real/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -5,8 +5,15 @@ COMPOSE ?= docker compose
 CONFIG ?= config/config.yaml
 MODE ?= backtest
 MAX_WORKERS ?= 4
+EXCHANGE ?= binance
+SYMBOL ?= BTC/USDT
+TIMEFRAME ?= 1m
+KLINE_LIMIT ?= 200
+ORDER_BOOK_LIMIT ?= 50
+TRADES_LIMIT ?= 200
+OUTPUT_DIR ?= data/real
 
-.PHONY: help build run run-backtest run-live test test-unit test-integration validate live-guard compose-config campaign
+.PHONY: help build run run-backtest run-live test test-unit test-integration validate live-guard compose-config campaign real-data-fetch
 
 help:
 	@echo "Targets:"
@@ -20,6 +27,7 @@ help:
 	@echo "  make live-guard        - Validate that live mode fails without secrets"
 	@echo "  make validate          - Full reliability validation pipeline"
 	@echo "  make campaign N=10     - Run N backtests and aggregate metrics"
+	@echo "  make real-data-fetch   - Fetch real market snapshot (klines/orderbook/trades)"
 	@echo "  make compose-config    - Validate compose config"
 
 compose-config:
@@ -63,3 +71,6 @@ validate: build run-backtest test live-guard
 
 campaign:
 	./scripts/run_backtest_campaign.sh $(N)
+
+real-data-fetch:
+	$(COMPOSE) run --rm agents python3 scripts/fetch_real_market_data.py --exchange $(EXCHANGE) --symbol $(SYMBOL) --timeframe $(TIMEFRAME) --kline-limit $(KLINE_LIMIT) --order-book-limit $(ORDER_BOOK_LIMIT) --trades-limit $(TRADES_LIMIT) --output-dir $(OUTPUT_DIR)

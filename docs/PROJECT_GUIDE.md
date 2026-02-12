@@ -36,6 +36,10 @@ It is designed for both human contributors and AI agents.
 - `tests/test_integration.sh`
 - `scripts/integration_example.py`
 
+7. Real market data snapshot module
+- `src/data/real_market_data.py`
+- `scripts/fetch_real_market_data.py`
+
 ## Runtime Modes
 
 - `backtest`: safe default, simulation-only execution
@@ -121,6 +125,16 @@ Expected result:
 ```bash
 make run MODE=backtest MAX_WORKERS=4
 ```
+
+### Fetch real public market data
+
+```bash
+make real-data-fetch EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m
+```
+
+Expected result:
+- Snapshot files written under `data/real/`
+- Console JSON includes file paths and metadata row counts
 
 ### Live mode (guarded)
 
@@ -232,6 +246,7 @@ make build
 - `README.md`: quick entrypoint
 - `docs/FEATURE_CATALOG.md`: full feature inventory with implementation status
 - `docs/IMPLEMENTED_CHANGES.md`: detailed record of implemented changes
+- `docs/REAL_DATA_DEVELOPMENT_PLAN.md`: staged migration plan to real data and lightweight trading
 - `docs/completed_enhancements.md`: MVP enhancement summary
 - `docs/documentation_acceptance_checklist.md`: doc quality gate
 - `Makefile`: canonical command interface for run/test/validate

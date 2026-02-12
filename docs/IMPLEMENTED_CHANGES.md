@@ -29,17 +29,26 @@ This document tracks the concrete implementation changes made to make the projec
   - frequency inference assumptions in `sync_cex_with_onchain`
   - mixed numeric/string interpolation during resampling
 
-6. Test expansion
+6. Real market data collector module
+- Added:
+  - `src/data/real_market_data.py`
+  - `scripts/fetch_real_market_data.py`
+- Added command:
+  - `make real-data-fetch EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m`
+- Result: lightweight public data snapshots for klines/orderbook/trades.
+
+7. Test expansion
 - Added:
   - `tests/test_data_sources.py`
   - `tests/test_baseline_algorithm.py`
   - `tests/test_runtime_config.py`
+  - `tests/test_real_market_data.py`
 - Updated:
   - `tests/test_integration.sh`
   - `Makefile` (`test-unit` now uses test discovery)
 - Result: broader coverage across data, baseline model, and runtime config.
 
-7. Documentation role and full docs
+8. Documentation role and full docs
 - Added/updated:
   - `agent_ops/team.yaml` (A6 Documentation Architect)
   - `agent_ops/prompts/a6_documentation_architect.md`
@@ -48,6 +57,7 @@ This document tracks the concrete implementation changes made to make the projec
   - `docs/documentation_acceptance_checklist.md`
   - `docs/test_strategy.md`
   - `docs/FEATURE_CATALOG.md`
+  - `docs/REAL_DATA_DEVELOPMENT_PLAN.md`
 
 ## Validation Evidence
 

@@ -11,6 +11,7 @@ Market making research and simulation framework with:
 - Canonical guide: `docs/PROJECT_GUIDE.md`
 - Feature catalog: `docs/FEATURE_CATALOG.md`
 - Implemented change log: `docs/IMPLEMENTED_CHANGES.md`
+- Real data roadmap: `docs/REAL_DATA_DEVELOPMENT_PLAN.md`
 - Multi-agent team spec: `agent_ops/team.yaml`
 - Runtime config: `config/config.yaml`
 
@@ -36,6 +37,14 @@ Artifacts are written to `artifacts/` during run/test steps.
 ```bash
 make test
 ```
+
+## Real Data Snapshot (No API Keys)
+
+```bash
+make real-data-fetch EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m
+```
+
+This fetches real public market data and writes snapshot files under `data/real/`.
 
 ## Live Mode Safety
 
