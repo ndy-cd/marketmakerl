@@ -1,12 +1,19 @@
 import numpy as np
 import pandas as pd
 import logging
-import ccxt
 import os
 import json
 from datetime import datetime, timedelta
 import pytz
 from typing import Dict, List, Optional, Union, Tuple
+
+try:
+    import ccxt
+
+    CCXT_AVAILABLE = True
+except ImportError:
+    ccxt = None
+    CCXT_AVAILABLE = False
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -46,6 +53,8 @@ class DataProcessor:
             bool: True if connection successful, False otherwise
         """
         try:
+            if not CCXT_AVAILABLE:
+                raise ImportError("ccxt is not installed; install dependencies or use simulation mode")
             # Initialize exchange connection
             exchange_class = getattr(ccxt, exchange_id)
             self.exchange = exchange_class({

@@ -1,0 +1,46 @@
+mode: backtest
+run_id: local_bootstrap
+
+paths:
+  data_dir: ./data
+  artifacts_dir: ./artifacts
+
+logging:
+  level: INFO
+  format: jsonl
+
+market:
+  symbol: BTC/USDT
+
+agents:
+  - name: data_agent_1
+    role: data
+    params:
+      seed: 42
+      n_periods: 500
+      initial_price: 2000
+      volatility: 0.01
+      mean_reversion: 0.1
+
+  - name: ml_agent_1
+    role: ml
+    params:
+      n_periods: 300
+      risk_aversion: 1.0
+
+  - name: exec_agent_1
+    role: execution
+    params:
+      n_periods: 500
+      risk_aversion: 1.0
+      volatility: 0.01
+      initial_capital: 10000
+      transaction_fee: 0.001
+      max_inventory: 20
+      volatility_window: 20
+      use_signals: true
+
+  - name: risk_agent_1
+    role: risk
+    params:
+      max_drawdown_limit: 3000

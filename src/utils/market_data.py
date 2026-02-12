@@ -6,7 +6,14 @@ import seaborn as sns
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union, Tuple
 import time
-import ccxt
+
+try:
+    import ccxt
+
+    ccxt_available = True
+except ImportError:
+    ccxt = None
+    ccxt_available = False
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')

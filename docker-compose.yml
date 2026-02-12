@@ -1,0 +1,15 @@
+services:
+  agents:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: marketmakerl-agents:latest
+    working_dir: /app
+    environment:
+      PYTHONPATH: /app
+      MPLCONFIGDIR: /tmp/matplotlib
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./artifacts:/app/artifacts
+    command: ["python3", "scripts/run_agents.py", "--config", "config/config.yaml", "--mode", "backtest", "--max-workers", "4"]

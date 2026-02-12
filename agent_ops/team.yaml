@@ -1,0 +1,100 @@
+project: marketmakerl
+mode: parallel
+coordination:
+  branch_pattern: "agent/<agent_id>/<topic>"
+  cadence:
+    sync_interval_minutes: 60
+    daily_merge_window_utc: "17:00"
+  shared_contracts:
+    - config/config.yaml schema
+    - artifact paths under artifacts/
+    - test entrypoints in tests/
+  quality_gate:
+    required_checks:
+      - "make validate"
+
+agents:
+  - id: A1
+    name: Runtime Orchestrator
+    skill: runtime-orchestrator
+    prompt_file: agent_ops/prompts/a1_runtime_orchestrator.md
+    owns_paths:
+      - scripts/
+      - config/
+      - src/agents/
+    mission: "Add process orchestration and unified runtime config for backtest, paper, and live-ready stubs"
+    deliverables:
+      - scripts/run_agents.py
+      - config/config.yaml
+      - src/agents/base.py
+      - Makefile
+
+  - id: A2
+    name: Data and Signal Engineer
+    skill: data-signal-engineer
+    prompt_file: agent_ops/prompts/a2_data_signal_engineer.md
+    owns_paths:
+      - src/data/
+      - src/utils/market_data.py
+      - data/
+    mission: "Harden data ingestion and feature generation with deterministic simulation and schema checks"
+    deliverables:
+      - improved DataProcessor validation
+      - feature schema contract
+      - new tests for edge-case data
+
+  - id: A3
+    name: Modeling Engineer
+    skill: modeling-engineer
+    prompt_file: agent_ops/prompts/a3_modeling_engineer.md
+    owns_paths:
+      - src/models/
+      - notebooks/rl_enhanced_market_making_enhanced.ipynb
+    mission: "Improve quote logic, inventory controls, and RL environment behavior without breaking current APIs"
+    deliverables:
+      - model parameter guards
+      - reproducible RL env seeds
+      - updated model-focused tests
+
+  - id: A4
+    name: Backtest and Risk Engineer
+    skill: backtest-risk-engineer
+    prompt_file: agent_ops/prompts/a4_backtest_risk_engineer.md
+    owns_paths:
+      - src/backtesting/
+      - visualizations/
+    mission: "Increase backtest realism, fix accounting inconsistencies, and standardize risk metrics"
+    deliverables:
+      - corrected pnl/win-rate logic
+      - slippage and latency switches
+      - regression benchmark report
+
+  - id: A5
+    name: QA and Integration Engineer
+    skill: quality-gate
+    prompt_file: agent_ops/prompts/a5_qa_integration_engineer.md
+    owns_paths:
+      - tests/
+      - requirements.txt
+      - README.md
+      - docs/
+    mission: "Create stable CI-like checks, integration tests, and release-ready documentation for merged changes"
+    deliverables:
+      - expanded unit/integration test matrix
+      - quick smoke script
+      - acceptance checklist in docs/
+      - make-based validation workflow
+
+  - id: A6
+    name: Documentation Architect
+    skill: documentation-architect
+    prompt_file: agent_ops/prompts/a6_documentation_architect.md
+    owns_paths:
+      - README.md
+      - docs/
+      - agent_ops/
+    mission: "Make project documentation clear for humans and AI: capabilities, setup, execution, testing, data flow, and extension paths"
+    deliverables:
+      - docs/PROJECT_GUIDE.md
+      - updated README.md navigation
+      - docs-oriented acceptance checklist
