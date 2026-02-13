@@ -23,7 +23,7 @@ SERVER ?=
 SERVER_DIR ?= /opt/marketmakerl
 PAPER_ONLY ?= 1
 
-.PHONY: help build run run-backtest run-live test test-unit test-integration validate live-guard compose-config campaign real-data-fetch analyze-last-month research-budgets walk-forward mvp-launch realtime-paper realtime-live daily-smoke data-freshness risk-calibration weekly-report quant-experiments paper-multisymbol realization-step deploy-server
+.PHONY: help build run run-backtest run-live test test-unit test-integration validate live-guard compose-config campaign real-data-fetch analyze-last-month research-budgets walk-forward mvp-launch realtime-paper realtime-live daily-smoke data-freshness risk-calibration weekly-report quant-experiments paper-multisymbol realization-step stakeholder-dashboard deploy-server
 
 help:
 	@echo "Targets:"
@@ -53,6 +53,7 @@ help:
 	@echo "  make quant-experiments  - Run quant strategy experiments with robustness ranking"
 	@echo "  make paper-multisymbol  - Run paper quote loop for symbols in SYMBOLS"
 	@echo "  make realization-step   - Quant experiments + weekly report + multisymbol paper run"
+	@echo "  make stakeholder-dashboard - Build stakeholder analytics dashboard from latest artifacts"
 	@echo "  make deploy-server SERVER=user@host [SERVER_DIR=/opt/marketmakerl]"
 	@echo "  make compose-config    - Validate compose config"
 
@@ -152,6 +153,9 @@ realization-step:
 	$(MAKE) quant-experiments EXCHANGE=$(EXCHANGE) SYMBOL=$(SYMBOL) DAYS=$(DAYS)
 	$(MAKE) weekly-report
 	$(MAKE) paper-multisymbol EXCHANGE=$(EXCHANGE) SYMBOLS=$(SYMBOLS) TIMEFRAME=1m ITERATIONS=5 POLL_SECONDS=1
+
+stakeholder-dashboard:
+	$(COMPOSE) run --rm agents python3 scripts/build_stakeholder_dashboard.py
 
 deploy-server:
 	@test -n "$(SERVER)" || (echo "SERVER is required, e.g. make deploy-server SERVER=user@host" && exit 1)

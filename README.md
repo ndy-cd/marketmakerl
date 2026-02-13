@@ -49,7 +49,12 @@ make data-freshness EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m
 make weekly-report
 make quant-experiments EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30
 make realization-step EXCHANGE=binance SYMBOL=BTC/USDT SYMBOLS=BTC/USDT,ETH/USDT
+make stakeholder-dashboard
 ```
+
+Stakeholder dashboard output:
+
+- `artifacts/dashboard/latest_stakeholder_dashboard.html`
 
 ## Policy
 

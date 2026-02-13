@@ -25,3 +25,5 @@ Supporting references:
 6. `agent_ops/WEEKLY_GATE_REVIEW_TEMPLATE.md` - weekly reliability review template.
 7. `agent_ops/FAILURE_TRIAGE_TEMPLATE.md` - incident triage template for failed gates.
 8. `agent_ops/TEAM_REVIEW_SIGNOFF.md` - final team review completion and execution sign-off.
+9. `agent_ops/TEAM_SYSTEM_CHECK_REPORT.md` - per-agent system step verification before analytics.
+10. `artifacts/dashboard/latest_stakeholder_dashboard.html` - latest stakeholder dashboard view.
