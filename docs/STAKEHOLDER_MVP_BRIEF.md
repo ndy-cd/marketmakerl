@@ -2,6 +2,8 @@
 
 Date: 2026-02-13
 
+See `docs/DOCS_INDEX.md` for the full documentation map.
+
 ## Executive Status
 
 - MVP runtime is operational in Docker.

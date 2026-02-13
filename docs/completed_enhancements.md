@@ -1,6 +1,11 @@
 # Completed Enhancements
 
 This document summarizes enhancements that are implemented now and aligned with the current codebase.
+It is historical context, not the canonical source of truth.
+For active documentation, use:
+- `docs/DOCS_INDEX.md`
+- `docs/PROJECT_GUIDE.md`
+- `docs/MVP_EXECUTION_PLAN.md`
 
 ## Runtime and Reliability
 

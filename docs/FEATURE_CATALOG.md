@@ -1,6 +1,7 @@
 # Feature Catalog
 
 This file documents all current features and their implementation status.
+For usage instructions, read `docs/PROJECT_GUIDE.md`.
 
 ## Legend
 - `Implemented`: usable now and covered by tests/workflows

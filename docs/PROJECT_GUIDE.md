@@ -1,5 +1,8 @@
 # Project Guide
 
+This is the canonical technical document for this repository.
+If you are unsure where to start, open `docs/DOCS_INDEX.md`.
+
 ## Purpose
 
 This guide is the single source of truth for:

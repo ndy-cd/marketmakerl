@@ -1,5 +1,7 @@
 # Deployment Guide
 
+For documentation navigation, use `docs/DOCS_INDEX.md`.
+
 ## Scope
 
 This guide covers deployment of the real-time strategy quote loop to a remote server using Docker.

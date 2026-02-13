@@ -2,6 +2,8 @@
 
 Date: 2026-02-12
 
+For document navigation, use `docs/DOCS_INDEX.md`.
+
 ## Milestones
 
 1. Runtime and Safety Gates (`Owner: A1, A5`) - `Completed`
