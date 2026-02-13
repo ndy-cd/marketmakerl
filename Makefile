@@ -24,6 +24,7 @@ SYMBOLS ?= BTC/USDT,ETH/USDT
 VARIANTS ?= conservative,balanced,adaptive
 SEEDS ?= 42,99
 BUDGETS ?= 5000,10000,15000
+MAX_TOTAL_RETURN_PCT ?= 1.0
 SERVER ?=
 SERVER_DIR ?= /opt/marketmakerl
 PAPER_ONLY ?= 1
@@ -57,7 +58,7 @@ help:
 	@echo "  make data-freshness     - Verify public market-data freshness and schema health"
 	@echo "  make risk-calibration   - Run risk calibration scenario sweep"
 	@echo "  make weekly-report      - Build weekly reliability summary from latest artifacts"
-	@echo "  make quant-experiments  - Run quant strategy experiments with robust risk stats"
+	@echo "  make quant-experiments  - Run quant strategy experiments with robust/plausibility stats"
 	@echo "  make paper-multisymbol  - Run paper quote loop for symbols in SYMBOLS"
 	@echo "  make realization-step   - Quant experiments + weekly report + multisymbol paper run"
 	@echo "  make stakeholder-dashboard - Build stakeholder analytics dashboard from latest artifacts"
@@ -153,7 +154,7 @@ weekly-report:
 	$(COMPOSE) run --rm agents python3 scripts/weekly_reliability_report.py
 
 quant-experiments:
-	$(COMPOSE) run --rm agents python3 scripts/quant_strategy_experiments.py --exchange $(EXCHANGE) --symbol $(SYMBOL) --timeframe 15m --days $(DAYS) --batch-limit $(BATCH_LIMIT) --window-days $(WINDOW_DAYS) --max-windows $(MAX_WINDOWS) --budgets $(BUDGETS) --variants $(VARIANTS) --seeds $(SEEDS)
+	$(COMPOSE) run --rm agents python3 scripts/quant_strategy_experiments.py --exchange $(EXCHANGE) --symbol $(SYMBOL) --timeframe 15m --days $(DAYS) --batch-limit $(BATCH_LIMIT) --window-days $(WINDOW_DAYS) --max-windows $(MAX_WINDOWS) --budgets $(BUDGETS) --variants $(VARIANTS) --seeds $(SEEDS) --max-total-return-pct $(MAX_TOTAL_RETURN_PCT)
 
 paper-multisymbol:
 	@for sym in $$(echo "$(SYMBOLS)" | tr ',' ' '); do \
@@ -189,6 +190,10 @@ dashboard-open: dashboard-local
 
 dashboard-serve: dashboard-local
 	@if [ ! -f "$(DASHBOARD_FILE)" ]; then echo "Dashboard file not found: $(DASHBOARD_FILE)"; exit 1; fi
+	@if lsof -iTCP:$(DASHBOARD_PORT) -sTCP:LISTEN >/dev/null 2>&1; then \
+		echo "Port $(DASHBOARD_PORT) is already in use. Try another one, e.g. make dashboard-serve DASHBOARD_PORT=8010"; \
+		exit 1; \
+	fi
 	@echo "Serving dashboard on http://localhost:$(DASHBOARD_PORT)/$(DASHBOARD_FILE)"
 	python3 -m http.server $(DASHBOARD_PORT)
 

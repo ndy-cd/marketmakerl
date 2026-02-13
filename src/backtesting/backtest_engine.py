@@ -102,8 +102,8 @@ class BacktestEngine:
         if risk_off:
             effective_min_edge_bps += 0.5
 
-        effective_soft_limit = int(soft_limit * (risk_off_inventory_scale if risk_off else 1.0))
-        effective_soft_limit = max(1, effective_soft_limit)
+        effective_soft_limit = float(soft_limit) * (risk_off_inventory_scale if risk_off else 1.0)
+        effective_soft_limit = max(1e-9, effective_soft_limit)
 
         adverse_return_bps = float(params.get("adverse_return_bps", 0.0)) if isinstance(params, dict) else 0.0
         row_return = self._normalize_return(row)
@@ -175,8 +175,18 @@ class BacktestEngine:
         min_edge_bps = float(params.get("min_edge_bps", self.min_edge_bps)) if isinstance(params, dict) else self.min_edge_bps
         inventory_soft_limit_ratio = float(params.get("inventory_soft_limit_ratio", 0.8)) if isinstance(params, dict) else 0.8
         cooldown_steps = int(params.get("cooldown_steps", self.cooldown_steps)) if isinstance(params, dict) else self.cooldown_steps
+        order_notional_pct = float(params.get("order_notional_pct", 0.02)) if isinstance(params, dict) else 0.02
+        min_order_qty = float(params.get("min_order_qty", 0.0001)) if isinstance(params, dict) else 0.0001
+        max_order_qty = float(params.get("max_order_qty", 10.0)) if isinstance(params, dict) else 10.0
+        order_notional_pct = min(max(order_notional_pct, 0.001), 0.5)
+        min_order_qty = max(min_order_qty, 1e-8)
+        max_order_qty = max(max_order_qty, min_order_qty)
+        first_mid = float(self.market_data.iloc[0]['mid_price']) if len(self.market_data) > 0 else 1.0
+        base_order_qty = (self.initial_capital * order_notional_pct) / max(1e-9, first_mid)
+        base_order_qty = float(np.clip(base_order_qty, min_order_qty, max_order_qty))
         inventory_soft_limit_ratio = min(max(inventory_soft_limit_ratio, 0.1), 0.99)
-        soft_limit = max(1, int(max_inventory * inventory_soft_limit_ratio))
+        soft_limit = max(base_order_qty, (max_inventory * inventory_soft_limit_ratio * base_order_qty))
+        max_inventory_units = max(base_order_qty, (max_inventory * base_order_qty))
         peak_value = float(self.initial_capital)
 
         for i, (timestamp, row) in enumerate(self.market_data.iterrows()):
@@ -249,15 +259,20 @@ class BacktestEngine:
             
             # Process trades and update positions
             if bid_executed:
-                self._process_trade(timestamp, 'BUY', bid_price, 1, mid_price)
-                self._cooldown_remaining = cooldown_steps
+                affordable_qty = self.capital / max(1e-9, (bid_price * (1.0 + self.transaction_fee)))
+                trade_qty = min(base_order_qty, max(0.0, float(affordable_qty)))
+                if trade_qty >= min_order_qty:
+                    self._process_trade(timestamp, 'BUY', bid_price, trade_qty, mid_price)
+                    self._cooldown_remaining = cooldown_steps
                 
             if ask_executed and self.inventory > 0:
-                self._process_trade(timestamp, 'SELL', ask_price, 1, mid_price)
-                self._cooldown_remaining = cooldown_steps
+                trade_qty = min(base_order_qty, max(0.0, float(self.inventory)))
+                if trade_qty >= min_order_qty:
+                    self._process_trade(timestamp, 'SELL', ask_price, trade_qty, mid_price)
+                    self._cooldown_remaining = cooldown_steps
             
             # Check inventory limits
-            if abs(self.inventory) >= max_inventory:
+            if abs(self.inventory) >= max_inventory_units:
                 # Force liquidation at market price with penalty
                 inventory_before_liquidation = self.inventory
                 liquidation_price = mid_price * (0.98 if inventory_before_liquidation > 0 else 1.02)
@@ -328,8 +343,18 @@ class BacktestEngine:
         min_edge_bps = float(params.get("min_edge_bps", self.min_edge_bps)) if isinstance(params, dict) else self.min_edge_bps
         inventory_soft_limit_ratio = float(params.get("inventory_soft_limit_ratio", 0.8)) if isinstance(params, dict) else 0.8
         cooldown_steps = int(params.get("cooldown_steps", self.cooldown_steps)) if isinstance(params, dict) else self.cooldown_steps
+        order_notional_pct = float(params.get("order_notional_pct", 0.02)) if isinstance(params, dict) else 0.02
+        min_order_qty = float(params.get("min_order_qty", 0.0001)) if isinstance(params, dict) else 0.0001
+        max_order_qty = float(params.get("max_order_qty", 10.0)) if isinstance(params, dict) else 10.0
+        order_notional_pct = min(max(order_notional_pct, 0.001), 0.5)
+        min_order_qty = max(min_order_qty, 1e-8)
+        max_order_qty = max(max_order_qty, min_order_qty)
+        first_mid = float(self.market_data.iloc[0]['mid_price']) if len(self.market_data) > 0 else 1.0
+        base_order_qty = (self.initial_capital * order_notional_pct) / max(1e-9, first_mid)
+        base_order_qty = float(np.clip(base_order_qty, min_order_qty, max_order_qty))
         inventory_soft_limit_ratio = min(max(inventory_soft_limit_ratio, 0.1), 0.99)
-        soft_limit = max(1, int(max_inventory * inventory_soft_limit_ratio))
+        soft_limit = max(base_order_qty, (max_inventory * inventory_soft_limit_ratio * base_order_qty))
+        max_inventory_units = max(base_order_qty, (max_inventory * base_order_qty))
         peak_value = float(self.initial_capital)
 
         for i, (timestamp, row) in enumerate(self.market_data.iterrows()):
@@ -445,15 +470,20 @@ class BacktestEngine:
             
             # Process trades and update positions
             if bid_executed:
-                self._process_trade(timestamp, 'BUY', bid_price, 1, mid_price)
-                self._cooldown_remaining = cooldown_steps
+                affordable_qty = self.capital / max(1e-9, (bid_price * (1.0 + self.transaction_fee)))
+                trade_qty = min(base_order_qty, max(0.0, float(affordable_qty)))
+                if trade_qty >= min_order_qty:
+                    self._process_trade(timestamp, 'BUY', bid_price, trade_qty, mid_price)
+                    self._cooldown_remaining = cooldown_steps
                 
             if ask_executed and self.inventory > 0:
-                self._process_trade(timestamp, 'SELL', ask_price, 1, mid_price)
-                self._cooldown_remaining = cooldown_steps
+                trade_qty = min(base_order_qty, max(0.0, float(self.inventory)))
+                if trade_qty >= min_order_qty:
+                    self._process_trade(timestamp, 'SELL', ask_price, trade_qty, mid_price)
+                    self._cooldown_remaining = cooldown_steps
             
             # Check inventory limits
-            if abs(self.inventory) >= max_inventory:
+            if abs(self.inventory) >= max_inventory_units:
                 # Force liquidation at market price with penalty
                 inventory_before_liquidation = self.inventory
                 liquidation_price = mid_price * (0.98 if inventory_before_liquidation > 0 else 1.02)
@@ -562,7 +592,7 @@ class BacktestEngine:
             timestamp: Trade timestamp
             side (str): Trade side ('BUY' or 'SELL')
             price (float): Execution price
-            quantity (int): Trade quantity
+            quantity (float): Trade quantity
             mid_price (float): Current mid price
         """
         fee = abs(price * quantity * self.transaction_fee)
@@ -617,9 +647,9 @@ class BacktestEngine:
         
         # Calculate realized PnL from closed trades
         if not trades_df.empty:
-            self.metrics['realized_pnl'] = trades_df[trades_df['side'] == 'SELL']['price'].sum() - \
-                                         trades_df[trades_df['side'] == 'BUY']['price'].sum() - \
-                                         trades_df['fee'].sum()
+            sell_value = (trades_df[trades_df['side'] == 'SELL']['price'] * trades_df[trades_df['side'] == 'SELL']['quantity']).sum()
+            buy_value = (trades_df[trades_df['side'] == 'BUY']['price'] * trades_df[trades_df['side'] == 'BUY']['quantity']).sum()
+            self.metrics['realized_pnl'] = sell_value - buy_value - trades_df['fee'].sum()
         
         # Unrealized PnL
         self.metrics['unrealized_pnl'] = positions_df.iloc[-1]['unrealized_pnl'] if not positions_df.empty else 0
@@ -643,12 +673,12 @@ class BacktestEngine:
         if not trades_df.empty:
             profitable_trades = trades_df[trades_df['side'] == 'SELL'].copy()
             if not profitable_trades.empty:
-                profitable_trades['buy_price'] = 0
+                profitable_trades['buy_price'] = 0.0
                 for i, row in profitable_trades.iterrows():
                     # Find corresponding buy trade
                     buy_trades = trades_df[(trades_df['side'] == 'BUY') & (trades_df['timestamp'] < row['timestamp'])]
                     if not buy_trades.empty:
-                        profitable_trades.at[i, 'buy_price'] = int(float(buy_trades.iloc[-1]['price']))
+                        profitable_trades.at[i, 'buy_price'] = float(buy_trades.iloc[-1]['price'])
                 
                 profitable_trades['profit'] = profitable_trades['price'] - profitable_trades['buy_price']
                 wins = len(profitable_trades[profitable_trades['profit'] > 0])

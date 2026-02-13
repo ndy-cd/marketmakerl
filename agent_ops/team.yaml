@@ -135,3 +135,31 @@ agents:
       - MVP milestone checklist
       - phase-by-phase execution plan with owners
       - release readiness gate summary
+
+  - id: A9
+    name: Dashboard Designer
+    skill: dashboard-designer
+    prompt_file: agent_ops/prompts/a9_dashboard_designer.md
+    owns_paths:
+      - scripts/build_stakeholder_dashboard.py
+      - docs/showcase/
+      - artifacts/dashboard/
+    mission: "Design stakeholder dashboards that are visually clear, decision-oriented, and demo-ready"
+    deliverables:
+      - consistent KPI card hierarchy
+      - table/legend readability improvements
+      - dashboard narrative tuned for stakeholder demos
+
+  - id: A10
+    name: Statistical Reliability Analyst
+    skill: statistical-reliability-analyst
+    prompt_file: agent_ops/prompts/a10_statistical_reliability_analyst.md
+    owns_paths:
+      - scripts/quant_strategy_experiments.py
+      - artifacts/quant_experiments/
+      - agent_ops/
+    mission: "Validate metric robustness, detect implausible outputs, and enforce defensible statistical gates"
+    deliverables:
+      - plausibility checks and anomaly flags
+      - robust metric definitions and thresholds
+      - weekly statistical health summary

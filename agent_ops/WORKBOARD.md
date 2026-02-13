@@ -1,4 +1,4 @@
-# Agent Workboard (A1-A8)
+# Agent Workboard (A1-A10)
 
 Single shared board for MVP execution status.
 
@@ -47,6 +47,14 @@ Stable paper-only MVP with clear technical and stakeholder documentation.
 8. `A8 Project Manager` - `Done`
 - Scope: MVP milestone governance.
 - Focus: lock launch workflow and sign-off criteria.
+
+9. `A9 Dashboard Designer` - `Done`
+- Scope: stakeholder dashboard readability and narrative quality.
+- Result: dashboard refocused on robust statistics and decision-friendly KPI cards.
+
+10. `A10 Statistical Reliability Analyst` - `Done`
+- Scope: quant metric reliability and plausibility controls.
+- Result: experiment gates include robust risk metrics plus implausible-return filter.
 
 ## Hard Gates
 

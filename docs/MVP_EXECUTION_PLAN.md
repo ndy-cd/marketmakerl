@@ -26,8 +26,9 @@ Release gate criteria:
 2. Strategy report includes readiness checks.
 3. Drawdown rule enforced: failure if drawdown exceeds `40%` of initial budget.
 4. Tail-risk rule enforced: CVaR95 and Sortino thresholds must pass in quant experiments.
-5. `PAPER_ONLY=1` remains enabled until quant gate passes.
-6. Walk-forward gate passes (`make walk-forward ...`).
+5. Plausibility rule enforced: recommendation must satisfy total-return cap.
+6. `PAPER_ONLY=1` remains enabled until quant gate passes.
+7. Walk-forward gate passes (`make walk-forward ...`).
 
 ## Current Decision
 

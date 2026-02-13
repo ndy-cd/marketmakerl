@@ -35,7 +35,7 @@ def build_html(payload: Dict[str, Any]) -> str:
     files = payload["files"]
 
     rows = "".join(
-        f"<tr><td>{r['strategy']}</td><td>{r['budget']}</td><td>{r['total_pnl']:.2f}</td><td>{r['sortino_ratio']:.3f}</td><td>{r['calmar_ratio']:.3f}</td><td>{pct(r['cvar_95_pct'])}</td><td>{pct(r['max_drawdown_pct'])}</td><td>{r['pass_rate']:.2f}</td></tr>"
+        f"<tr><td>{r['strategy']}</td><td>{r['budget']}</td><td>{pct(r.get('total_return_pct', 0.0))}</td><td>{r['sortino_ratio']:.3f}</td><td>{r['calmar_ratio']:.3f}</td><td>{pct(r['cvar_95_pct'])}</td><td>{pct(r['max_drawdown_pct'])}</td><td>{r['pass_rate']:.2f}</td></tr>"
         for r in quant_top
     )
 
@@ -99,6 +99,7 @@ def build_html(payload: Dict[str, Any]) -> str:
         <div class=\"card\"><div class=\"k\">Recommended Strategy</div><div class=\"v\">{c['quant_strategy']}</div></div>
         <div class=\"card\"><div class=\"k\">Robustness Score</div><div class=\"v\">{c['robustness_score']:.3f}</div></div>
         <div class=\"card\"><div class=\"k\">Sortino Ratio</div><div class=\"v\">{c['sortino_ratio']:.3f}</div></div>
+        <div class=\"card\"><div class=\"k\">Recommended Return</div><div class=\"v\">{pct(c['total_return_pct'])}</div></div>
         <div class=\"card\"><div class=\"k\">CVaR 95%</div><div class=\"v warn\">{pct(c['cvar_95_pct'])}</div></div>
       </div>
     </div>
@@ -111,7 +112,7 @@ def build_html(payload: Dict[str, Any]) -> str:
     <div class=\"section\">
       <h2>Strategies Explored: Robustness Ranking</h2>
       <table>
-        <thead><tr><th>Strategy</th><th>Budget</th><th>Total PnL</th><th>Sortino</th><th>Calmar</th><th>CVaR95</th><th>Max DD %</th><th>Pass Rate</th></tr></thead>
+        <thead><tr><th>Strategy</th><th>Budget</th><th>Total Return</th><th>Sortino</th><th>Calmar</th><th>CVaR95</th><th>Max DD %</th><th>Pass Rate</th></tr></thead>
         <tbody>{rows}</tbody>
       </table>
       <p class=\"small\">Top table is from latest quant experiments artifact with expanded stress and tail-risk metrics.</p>
@@ -191,6 +192,7 @@ def main() -> int:
             "quant_strategy": safe(recommendation.get("strategy"), "n/a"),
             "robustness_score": float(recommendation.get("robustness_score", 0.0)),
             "sortino_ratio": float(recommendation.get("sortino_ratio", 0.0)),
+            "total_return_pct": float(recommendation.get("total_return_pct", 0.0)),
             "cvar_95_pct": float(recommendation.get("cvar_95_pct", 0.0)),
         },
         "quant_top": quant.get("top_10", [])[:8],

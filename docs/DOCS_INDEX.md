@@ -28,3 +28,4 @@ Supporting references:
 9. `agent_ops/TEAM_SYSTEM_CHECK_REPORT.md` - per-agent system step verification before analytics.
 10. `artifacts/dashboard/latest_stakeholder_dashboard.html` - latest stakeholder dashboard view.
 11. `docs/showcase/README.md` - stakeholder showcase snapshot and headline metrics.
+12. `agent_ops/PM_PROCESS_REVIEW.md` - project-manager process review and corrective controls.

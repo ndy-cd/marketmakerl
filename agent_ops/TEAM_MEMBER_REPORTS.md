@@ -81,6 +81,27 @@ Report date: `2026-02-13`
   - project needs clear “entry checklist” after paper stability streak
 - Next:
   - create go/no-go checklist for API key onboarding stage
+  - enforce statistical plausibility checkpoint before recommendation sign-off
+
+### A9 Dashboard Designer
+- Status: `Updated`
+- New work:
+  - redesigned dashboard KPI hierarchy for reliability-first storytelling
+  - reduced emphasis on absolute PnL and increased risk-adjusted context
+- Weak spot:
+  - current dashboard is static HTML (no interactive drilldown yet)
+- Next:
+  - add compact trend visuals from latest weekly/campaign artifacts
+
+### A10 Statistical Reliability Analyst
+- Status: `Updated`
+- New work:
+  - integrated plausibility threshold into quant gate
+  - upgraded ranking to penalize statistically implausible return profiles
+- Weak spot:
+  - no bootstrap confidence intervals yet for each strategy profile
+- Next:
+  - add confidence band estimates for top candidate profiles
 
 ## A1 Runtime Orchestrator
 

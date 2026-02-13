@@ -48,6 +48,7 @@ Generated: {datetime.now(timezone.utc).isoformat()}
 - Weekly reliability status: `{weekly.get('status', 'n/a')}`
 - Recommended strategy: `{rec.get('strategy', 'n/a')}`
 - Recommended budget: `{rec.get('budget', 'n/a')}`
+- Recommended return %: `{rec.get('total_return_pct', 'n/a')}`
 - Recommended robustness score: `{rec.get('robustness_score', 'n/a')}`
 - Recommended Sortino ratio: `{rec.get('sortino_ratio', 'n/a')}`
 - Recommended CVaR95 %: `{rec.get('cvar_95_pct', 'n/a')}`

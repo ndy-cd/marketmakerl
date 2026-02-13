@@ -42,6 +42,7 @@ class ExperimentResult:
     variant: str
     budget: float
     total_pnl: float
+    total_return_pct: float
     sharpe_ratio: float
     sortino_ratio: float
     calmar_ratio: float
@@ -74,6 +75,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--min-pass-rate", type=float, default=0.65)
     p.add_argument("--min-sortino", type=float, default=0.20)
     p.add_argument("--max-cvar95-pct", type=float, default=0.03)
+    p.add_argument("--max-total-return-pct", type=float, default=1.0)
     p.add_argument("--tail-quantile", type=float, default=0.05)
     p.add_argument("--output-dir", default="artifacts/quant_experiments")
     return p.parse_args()
@@ -251,6 +253,11 @@ def run_single(data: pd.DataFrame, spec: StrategySpec, budget: float, seed: int)
         min_edge_bps=spec.min_edge_bps,
         cooldown_steps=spec.cooldown_steps,
     )
+    median_mid = float(data["mid_price"].median()) if "mid_price" in data.columns else 1.0
+    median_mid = max(1e-9, median_mid)
+    min_order_qty = max(1e-6, (budget * 0.005) / median_mid)
+    max_order_qty = max(min_order_qty, (budget * 0.03) / median_mid)
+
     params = {
         "spread_constraint_bps": spec.spread_constraint_bps,
         "min_edge_bps": spec.min_edge_bps,
@@ -262,6 +269,9 @@ def run_single(data: pd.DataFrame, spec: StrategySpec, budget: float, seed: int)
         "hard_drawdown_stop_pct": spec.hard_drawdown_stop_pct,
         "adverse_return_bps": spec.adverse_return_bps,
         "risk_off_inventory_scale": spec.risk_off_inventory_scale,
+        "order_notional_pct": 0.015,
+        "min_order_qty": min_order_qty,
+        "max_order_qty": max_order_qty,
     }
     if spec.backtest_mode == "enhanced":
         return engine.run_backtest_enhanced(
@@ -363,9 +373,16 @@ def evaluate(args: argparse.Namespace, df_raw: pd.DataFrame) -> List[ExperimentR
                 wr = compute_risk_stats(m, budget, args.tail_quantile)
                 dd_pct = _safe_float(wm.get("max_drawdown", 0.0)) / max(1e-9, budget)
                 pnl = _safe_float(wm.get("total_pnl", 0.0))
+                total_return_pct = pnl / max(1e-9, budget)
                 sortino = wr["sortino_ratio"]
                 cvar95 = wr["cvar_95_pct"]
-                if dd_pct <= args.drawdown_fail_pct and pnl >= 0 and sortino >= args.min_sortino and cvar95 <= args.max_cvar95_pct:
+                if (
+                    dd_pct <= args.drawdown_fail_pct
+                    and pnl >= 0
+                    and sortino >= args.min_sortino
+                    and cvar95 <= args.max_cvar95_pct
+                    and total_return_pct <= args.max_total_return_pct
+                ):
                     pass_windows += 1
                 if dd_pct > args.drawdown_fail_pct:
                     hard_fails += 1
@@ -373,6 +390,7 @@ def evaluate(args: argparse.Namespace, df_raw: pd.DataFrame) -> List[ExperimentR
             pass_rate = (pass_windows / len(windows)) if windows else 0.0
 
             total_pnl = _safe_float(sum(_safe_float(m.get("total_pnl", 0.0)) for m in full_metrics) / max(1, len(full_metrics)))
+            total_return_pct = total_pnl / max(1e-9, budget)
             sharpe = _safe_float(sum(_safe_float(m.get("sharpe_ratio", 0.0)) for m in full_metrics) / max(1, len(full_metrics)))
             max_dd = _safe_float(sum(_safe_float(m.get("max_drawdown", 0.0)) for m in full_metrics) / max(1, len(full_metrics)))
             dd_pct = max_dd / max(1e-9, budget)
@@ -392,12 +410,14 @@ def evaluate(args: argparse.Namespace, df_raw: pd.DataFrame) -> List[ExperimentR
                 and dd_pct <= args.drawdown_fail_pct
                 and sortino >= args.min_sortino
                 and cvar95 <= args.max_cvar95_pct
+                and total_return_pct <= args.max_total_return_pct
             )
 
             calmar_capped = max(-2.0, min(8.0, calmar))
             sharpe_capped = max(-2.0, min(8.0, sharpe))
             sortino_capped = max(-2.0, min(10.0, sortino))
             profit_factor_capped = max(0.0, min(4.0, profit_factor))
+            plausibility_penalty = max(0.0, total_return_pct - args.max_total_return_pct)
 
             robustness = (
                 (1.2 * sharpe_capped)
@@ -406,14 +426,15 @@ def evaluate(args: argparse.Namespace, df_raw: pd.DataFrame) -> List[ExperimentR
                 + (1.8 * pass_rate)
                 + (0.8 * pos_ratio)
                 + (0.6 * profit_factor_capped)
-                + (total_pnl / max(1.0, budget))
+                + total_return_pct
                 - (4.0 * dd_pct)
                 - (8.0 * cvar95)
                 - (3.0 * ulcer)
                 - (2.5 * hard_fails)
+                - (12.0 * plausibility_penalty)
             )
 
-            base_name, _, variant = spec.name.partition("__")
+            _, _, variant = spec.name.partition("__")
             results.append(
                 ExperimentResult(
                     strategy=spec.name,
@@ -421,6 +442,7 @@ def evaluate(args: argparse.Namespace, df_raw: pd.DataFrame) -> List[ExperimentR
                     variant=variant or "balanced",
                     budget=budget,
                     total_pnl=total_pnl,
+                    total_return_pct=total_return_pct,
                     sharpe_ratio=sharpe,
                     sortino_ratio=sortino,
                     calmar_ratio=calmar,
@@ -502,6 +524,7 @@ def main() -> int:
             "min_pass_rate": args.min_pass_rate,
             "min_sortino": args.min_sortino,
             "max_cvar95_pct": args.max_cvar95_pct,
+            "max_total_return_pct": args.max_total_return_pct,
         },
         "gate_pass_count": int(df["gate_pass"].sum()),
         "total_cases": int(len(df)),

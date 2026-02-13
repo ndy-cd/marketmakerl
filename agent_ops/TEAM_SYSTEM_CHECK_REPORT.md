@@ -1,4 +1,4 @@
-# Team System Check Report (A1-A8)
+# Team System Check Report (A1-A10)
 
 Check date: `2026-02-13`
 
@@ -101,4 +101,17 @@ Objective: confirm robust metric upgrade and wider quant experiment matrix befor
 - Step: stakeholder narrative readiness
 - Evidence:
   - dashboard cards now emphasize robust stats (Sortino, CVaR95, Robustness Score)
+- Verdict: `pass`
+
+5. `A9 Dashboard Designer`
+- Step: dashboard readability and metric hierarchy
+- Evidence:
+  - table/card labels prioritize reliability metrics over raw headline PnL
+- Verdict: `pass`
+
+6. `A10 Statistical Reliability Analyst`
+- Step: plausibility filtering and robust recommendation logic
+- Evidence:
+  - quant gate includes `max_total_return_pct` threshold
+  - robustness score includes plausibility penalty
 - Verdict: `pass`

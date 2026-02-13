@@ -1,4 +1,4 @@
-# Team Action Plan (Strict) - A1 to A8
+# Team Action Plan (Strict) - A1 to A10
 
 Planning window: `2026-02-13` to `2026-03-13`
 
@@ -104,6 +104,28 @@ Keep MVP reliably green in paper mode for repeated weekly cycles, with strict ga
 - Done criteria:
   - stakeholder update published weekly with current gate status
 
+9. `A9 Dashboard Designer`
+- Priority: `P1`
+- Scope: stakeholder analytics presentation quality.
+- Deliverables:
+  - clear KPI hierarchy (status/gate/risk/return context)
+  - concise explanatory labels for non-quant stakeholders
+- KPI:
+  - dashboard ambiguity issues in review = `0`
+- Done criteria:
+  - stakeholder demo can be presented without ad-hoc metric clarification
+
+10. `A10 Statistical Reliability Analyst`
+- Priority: `P0`
+- Scope: statistical defensibility and anomaly detection.
+- Deliverables:
+  - plausibility constraints on strategy recommendation
+  - anomaly flagging for unrealistic return profiles
+- KPI:
+  - implausible-recommendation incidents = `0`
+- Done criteria:
+  - quant report includes explicit robustness and plausibility gates
+
 ## Risks and Mitigations
 
 1. Exchange API instability
@@ -133,6 +155,8 @@ Date: `2026-02-13`
 6. `A6`: strict docs governance reflected in team and workboard docs.
 7. `A7`: weekly reliability summary generator implemented (`make weekly-report`).
 8. `A8`: strict team execution plan and role accountability documented.
+9. `A9`: dashboard KPI hierarchy and stakeholder readability pass.
+10. `A10`: robust statistics plus plausibility controls integrated in quant pipeline.
 
 ## Next Realization Step (Implemented)
 
