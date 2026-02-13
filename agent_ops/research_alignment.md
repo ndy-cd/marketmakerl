@@ -13,12 +13,12 @@ Source reviewed: `/Users/nody/codexpro/deep-research-report.md`
 ## Open Assumptions
 
 1. Live execution adapter remains intentionally disabled in MVP.
-2. Additional risk controls (kill-switch and richer limits) are still being hardened.
-3. Strategy economics are not yet consistently positive under current market regimes.
+2. Additional risk controls (kill-switch and richer limits) should still be hardened before live keys.
+3. Reliability is currently positive in latest cycle but must be revalidated weekly for drift.
 
 ## Active Sequence
 
-1. A3/A4: continue execution + risk + fee-aware improvements.
-2. A7: rerun quant gate until consistent pass on risk criteria.
-3. A5/A6: maintain regression and documentation alignment.
-4. A8: keep release gating and stakeholder tracking current.
+1. A3/A4: improve regime adaptation and downside stability without weakening strict gates.
+2. A7: publish weekly rolling 30-day report with go/no-go recommendation.
+3. A5/A6: maintain regression and strict documentation governance alignment.
+4. A8: run weekly release gate review and enforce rollback criteria.

@@ -8,6 +8,8 @@ make campaign N=10
 make research-budgets EXCHANGE=binance SYMBOL=BTC/USDT
 make walk-forward EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30
 make realtime-paper EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m ITERATIONS=20
+make data-freshness EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m
+make weekly-report
 ```
 
 ## What We Verify

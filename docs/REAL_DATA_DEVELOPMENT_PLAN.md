@@ -5,22 +5,24 @@
 - Real market data ingestion from public exchange endpoints is available.
 - Paper real-time strategy loop is available.
 - Last-month quant research is available with budget tiers and format comparisons.
+- Strict walk-forward gate is enabled and passing in the latest cycle.
 
 ## Next Steps
 
-1. Improve strategy economics:
-- reduce overtrading
-- improve fee-adjusted edge quality
-- stabilize drawdown behavior
+1. Maintain reliability under repeated cycles:
+- run weekly `make mvp-launch` and compare drift
+- keep hard drawdown failures at zero in walk-forward
+- investigate any pass-rate degradation immediately
 
 2. Strengthen execution realism:
 - better fill probability calibration
 - slippage/latency sensitivity tests
 
-3. Quant gate target:
+3. Quant gate target (must remain true):
 - positive PnL
 - positive Sharpe
 - max drawdown not worse than `40%` of budget
+- strict walk-forward pass with no hard-fail windows
 
 4. Live-key onboarding prerequisites:
 - all gates green in repeated runs

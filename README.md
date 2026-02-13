@@ -41,6 +41,14 @@ make walk-forward EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30
 make mvp-launch EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30
 ```
 
+6. Run operational reliability checks:
+
+```bash
+make daily-smoke EXCHANGE=binance SYMBOL=BTC/USDT ITERATIONS=2 POLL_SECONDS=1
+make data-freshness EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m
+make weekly-report
+```
+
 ## Policy
 
 - Paper/simulation only for MVP.

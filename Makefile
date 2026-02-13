@@ -22,7 +22,7 @@ SERVER ?=
 SERVER_DIR ?= /opt/marketmakerl
 PAPER_ONLY ?= 1
 
-.PHONY: help build run run-backtest run-live test test-unit test-integration validate live-guard compose-config campaign real-data-fetch analyze-last-month research-budgets walk-forward mvp-launch realtime-paper realtime-live deploy-server
+.PHONY: help build run run-backtest run-live test test-unit test-integration validate live-guard compose-config campaign real-data-fetch analyze-last-month research-budgets walk-forward mvp-launch realtime-paper realtime-live daily-smoke data-freshness risk-calibration weekly-report deploy-server
 
 help:
 	@echo "Targets:"
@@ -45,6 +45,10 @@ help:
 	@echo "  make realtime-paper     - Run realtime quote strategy (public data, no keys)"
 	@echo "  make realtime-live      - Run realtime strategy with key guard"
 	@echo "                           disabled while PAPER_ONLY=1"
+	@echo "  make daily-smoke        - Daily reliability smoke (validate+walk-forward+short paper run)"
+	@echo "  make data-freshness     - Verify public market-data freshness and schema health"
+	@echo "  make risk-calibration   - Run risk calibration scenario sweep"
+	@echo "  make weekly-report      - Build weekly reliability summary from latest artifacts"
 	@echo "  make deploy-server SERVER=user@host [SERVER_DIR=/opt/marketmakerl]"
 	@echo "  make compose-config    - Validate compose config"
 
@@ -118,6 +122,18 @@ realtime-live:
 	@test -n "$${EXCHANGE_API_KEY:-}" || (echo "EXCHANGE_API_KEY is required" && exit 1)
 	@test -n "$${EXCHANGE_API_SECRET:-}" || (echo "EXCHANGE_API_SECRET is required" && exit 1)
 	$(COMPOSE) run --rm -e EXCHANGE_API_KEY -e EXCHANGE_API_SECRET -e PAPER_ONLY=$(PAPER_ONLY) agents python3 scripts/run_realtime_strategy.py --exchange $(EXCHANGE) --symbol $(SYMBOL) --timeframe $(TIMEFRAME) --iterations $(ITERATIONS) --poll-seconds $(POLL_SECONDS) --spread-constraint $(SPREAD_CONSTRAINT) --require-keys
+
+daily-smoke:
+	EXCHANGE=$(EXCHANGE) SYMBOL=$(SYMBOL) DAYS=$(DAYS) ITERATIONS=$(ITERATIONS) POLL_SECONDS=$(POLL_SECONDS) bash scripts/daily_smoke.sh
+
+data-freshness:
+	$(COMPOSE) run --rm agents python3 scripts/check_data_freshness.py --exchange $(EXCHANGE) --symbol $(SYMBOL) --timeframe $(TIMEFRAME)
+
+risk-calibration:
+	$(COMPOSE) run --rm agents python3 scripts/risk_calibration_scenarios.py
+
+weekly-report:
+	$(COMPOSE) run --rm agents python3 scripts/weekly_reliability_report.py
 
 deploy-server:
 	@test -n "$(SERVER)" || (echo "SERVER is required, e.g. make deploy-server SERVER=user@host" && exit 1)

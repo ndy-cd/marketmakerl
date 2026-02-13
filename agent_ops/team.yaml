@@ -12,10 +12,17 @@ coordination:
   quality_gate:
     required_checks:
       - "make validate"
+      - "make walk-forward EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30"
   current_workboard: "agent_ops/WORKBOARD.md"
   current_policy:
     paper_only_default: true
     live_keys_allowed: false
+  documentation_governance:
+    owner: "A6"
+    reviewers:
+      - "A5"
+      - "A8"
+    strict_mode: true
 
 agents:
   - id: A1
@@ -80,8 +87,6 @@ agents:
     owns_paths:
       - tests/
       - requirements.txt
-      - README.md
-      - docs/
     mission: "Create stable CI-like checks, integration tests, and release-ready documentation for merged changes"
     deliverables:
       - expanded unit/integration test matrix
@@ -124,7 +129,6 @@ agents:
     prompt_file: agent_ops/prompts/a8_project_manager.md
     owns_paths:
       - agent_ops/
-      - docs/
       - Makefile
     mission: "Coordinate MVP completion, enforce milestones and acceptance gates, and keep delivery plan executable"
     deliverables:

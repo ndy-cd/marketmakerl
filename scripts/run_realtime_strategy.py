@@ -25,6 +25,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--risk-aversion", type=float, default=1.0)
     p.add_argument("--time-horizon", type=float, default=1.0)
     p.add_argument("--spread-constraint", type=float, default=0.001)
+    p.add_argument("--disable-regime-switch", action="store_true")
     p.add_argument("--initial-inventory", type=float, default=0.0)
     p.add_argument("--output-dir", default="artifacts/realtime")
     p.add_argument("--require-keys", action="store_true")
@@ -61,6 +62,31 @@ def compute_volatility(klines: pd.DataFrame) -> float:
     return float(max(1e-8, rets.rolling(window=20).std().iloc[-1] if len(rets) >= 20 else rets.std()))
 
 
+def detect_regime(klines: pd.DataFrame, volatility: float) -> str:
+    if klines.empty or len(klines) < 30:
+        return "neutral"
+    short = float(klines["mid_price"].iloc[-1])
+    long = float(klines["mid_price"].iloc[-30])
+    trend = (short - long) / max(1e-9, long)
+    if volatility > 0.0045:
+        return "volatile"
+    if trend > 0.003:
+        return "trend_up"
+    if trend < -0.003:
+        return "trend_down"
+    return "range"
+
+
+def regime_spread_multiplier(regime: str) -> float:
+    if regime == "volatile":
+        return 1.35
+    if regime in {"trend_up", "trend_down"}:
+        return 1.15
+    if regime == "range":
+        return 0.95
+    return 1.0
+
+
 def main() -> int:
     args = parse_args()
     if args.require_keys:
@@ -93,10 +119,15 @@ def main() -> int:
                 trades_limit=args.trades_limit,
             )
             mid = compute_mid(snapshot)
-            vol = compute_volatility(snapshot["klines"])
+            klines = snapshot["klines"]
+            vol = compute_volatility(klines)
+            regime = detect_regime(klines, vol)
             model.update_inventory(inventory)
             model.set_parameters(volatility=vol)
-            bid, ask = model.calculate_optimal_quotes(mid, spread_constraint=float(args.spread_constraint))
+            spread_constraint = float(args.spread_constraint)
+            if not args.disable_regime_switch:
+                spread_constraint *= regime_spread_multiplier(regime)
+            bid, ask = model.calculate_optimal_quotes(mid, spread_constraint=spread_constraint)
 
             payload = {
                 "ts_utc": datetime.now(timezone.utc).isoformat(),
@@ -110,6 +141,8 @@ def main() -> int:
                 "bid": float(bid),
                 "ask": float(ask),
                 "spread": float(ask - bid),
+                "spread_constraint": float(spread_constraint),
+                "regime": regime,
                 "top_bid_levels": int(len(snapshot["order_book"]["bids"])),
                 "top_ask_levels": int(len(snapshot["order_book"]["asks"])),
                 "recent_trades": int(len(snapshot["trades"])),

@@ -27,8 +27,8 @@ Deliver a launch-ready paper-trading MVP with stable operations and controlled r
 - Weaknesses: needs explicit weekly walk-forward monitoring as a mandatory KPI.
 
 6. `A6 Documentation Architect`
-- Strengths: docs are now compact, English-only, and linked to executable commands.
-- Weaknesses: requires regular synchronization with runtime defaults after each quant update.
+- Strengths: single documentation owner with end-to-end view for humans and AI.
+- Weaknesses: becomes bottleneck if review SLA is not enforced.
 
 7. `A7 Quant Researcher`
 - Strengths: budget/format sweep and walk-forward gate provide practical launch criteria.
@@ -37,6 +37,20 @@ Deliver a launch-ready paper-trading MVP with stable operations and controlled r
 8. `A8 Project Manager`
 - Strengths: clear gate-based MVP launch workflow and ownership model.
 - Weaknesses: requires weekly cadence enforcement and explicit rollback criteria.
+
+## Documentation Responsibility (Strict)
+
+1. Owner: `A6 Documentation Architect`.
+2. Mandatory reviewers: `A5` (test accuracy) and `A8` (scope/governance).
+3. Hard rules:
+- every runtime or strategy preset change must update docs in the same commit;
+- duplicate or conflicting docs are prohibited;
+- commands in docs must be runnable exactly as written;
+- docs language is English-only.
+4. Rejection criteria (automatic fail):
+- outdated command examples;
+- mismatch between `Makefile`/runtime defaults and docs;
+- missing data-flow, test-flow, or run-flow section after feature change.
 
 ## Cross-Team Risks
 
@@ -60,7 +74,7 @@ Deliver a launch-ready paper-trading MVP with stable operations and controlled r
 - Done when: one-command health check reports green status.
 
 5. `A6`: update docs after every preset or gate change in the same commit.
-- Done when: no docs/runtime mismatch in review.
+- Done when: strict documentation rejection criteria are all green.
 
 6. `A7`: maintain rolling 30-day adaptation and weekly walk-forward report.
 - Done when: latest report includes pass/fail verdict and reasoned recommendation.
@@ -87,3 +101,4 @@ Date: `2026-02-13`
 3. `research-budgets`: best reliability preset moved to `inventory_defensive_mm`
 4. `walk-forward --strict`: pass (`pass_rate=1.0`, `hard_fail_windows=0`)
 5. `realtime-paper`: pass (20 iterations, fresh artifact written)
+6. per-agent reports published: `agent_ops/TEAM_MEMBER_REPORTS.md`

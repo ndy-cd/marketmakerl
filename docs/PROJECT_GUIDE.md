@@ -84,6 +84,7 @@ make validate
 make campaign N=10
 make research-budgets EXCHANGE=binance SYMBOL=BTC/USDT
 make walk-forward EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30
+make daily-smoke EXCHANGE=binance SYMBOL=BTC/USDT ITERATIONS=2 POLL_SECONDS=1
 ```
 
 Research gate checks:

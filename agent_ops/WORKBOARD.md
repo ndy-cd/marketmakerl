@@ -6,6 +6,13 @@ Single shared board for MVP execution status.
 
 Stable paper-only MVP with clear technical and stakeholder documentation.
 
+## Documentation Ownership (Strict)
+
+- Owner: `A6 Documentation Architect` (single owner).
+- Mandatory reviewers: `A5 QA and Integration Engineer`, `A8 Project Manager`.
+- Rule: no docs PR/commit is accepted without owner approval and reviewer sign-off.
+- Scope: `README.md`, `docs/`, `agent_ops/` project-facing docs.
+
 ## Status by Agent
 
 1. `A1 Runtime Orchestrator` - `Done`
@@ -30,7 +37,7 @@ Stable paper-only MVP with clear technical and stakeholder documentation.
 
 6. `A6 Documentation Architect` - `Done`
 - Scope: docs structure and readability.
-- Result: compact English docs set aligned to MVP gates.
+- Result: strict docs ownership, compact English set, and gate-aligned guidance.
 
 7. `A7 Quant Researcher` - `Done`
 - Scope: quant readiness gate.
@@ -48,6 +55,7 @@ make validate
 make campaign N=10
 make research-budgets EXCHANGE=binance SYMBOL=BTC/USDT
 make walk-forward EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30
+make daily-smoke EXCHANGE=binance SYMBOL=BTC/USDT
 ```
 
 ## Current Decision
@@ -55,3 +63,5 @@ make walk-forward EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30
 - MVP remains `paper-only`.
 - Paper launch can proceed with the reliability preset and strict walk-forward gate.
 - Do not connect exchange API keys until paper operations remain stable in repeated cycles.
+- Active strict execution plan: `agent_ops/TEAM_ACTION_PLAN_STRICT.md`.
+- Active per-agent report set: `agent_ops/TEAM_MEMBER_REPORTS.md`.
