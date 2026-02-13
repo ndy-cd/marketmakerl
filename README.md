@@ -6,6 +6,7 @@ Docker-first market-making MVP for research and paper trading.
 
 - Runtime, backtests, tests, and paper realtime quote loop are operational.
 - Real market data ingestion (public endpoints) is operational.
+- Walk-forward gate is strict (`make walk-forward` exits non-zero on failure).
 - Live trading is blocked by default (`PAPER_ONLY=1`).
 
 ## Quick Start

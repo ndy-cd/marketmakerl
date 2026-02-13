@@ -96,7 +96,7 @@ Research gate checks:
 
 - Platform reliability (Docker/test/runtime): operational.
 - Real data ingestion (public endpoints): operational.
-- Quant economics: currently needs further improvement before live keys.
+- Quant reliability: strict walk-forward gate currently passes with reliability preset.
 - Decision: continue in paper-only mode.
 
 ## 8) Team Roles

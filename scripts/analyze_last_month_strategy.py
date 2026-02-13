@@ -32,6 +32,7 @@ class StrategyResult:
     soft_drawdown_risk_pct: float
     hard_drawdown_stop_pct: float
     adverse_return_bps: float
+    risk_off_inventory_scale: float
     total_pnl: float
     sharpe_ratio: float
     max_drawdown: float
@@ -164,17 +165,18 @@ def build_strategy_formats() -> Dict[str, Dict]:
             "backtest_mode": "standard",
             "risk_aversion": 1.8,
             "time_horizon": 0.5,
-            "max_inventory": 5,
-            "spread_constraint_bps": 38.0,
+            "max_inventory": 4,
+            "spread_constraint_bps": 40.0,
             "transaction_fee": 0.0002,
             "min_edge_bps": 2.5,
-            "cooldown_steps": 3,
-            "inventory_soft_limit_ratio": 0.50,
-            "target_volatility": 0.0035,
-            "vol_spread_scale": 1.3,
-            "soft_drawdown_risk_pct": 0.15,
+            "cooldown_steps": 4,
+            "inventory_soft_limit_ratio": 0.40,
+            "target_volatility": 0.0032,
+            "vol_spread_scale": 1.5,
+            "soft_drawdown_risk_pct": 0.14,
             "hard_drawdown_stop_pct": 0.40,
-            "adverse_return_bps": 16.0,
+            "adverse_return_bps": 12.0,
+            "risk_off_inventory_scale": 0.35,
         },
     }
 
@@ -185,10 +187,11 @@ def build_param_grid(max_combinations: int) -> List[Tuple[str, Dict]]:
     for format_name, cfg in formats.items():
         variants.append((format_name, cfg))
         relaxed = {**cfg}
-        relaxed["spread_constraint_bps"] = max(20.0, cfg["spread_constraint_bps"] - 3.0)
-        relaxed["min_edge_bps"] = max(1.0, cfg["min_edge_bps"] - 0.5)
-        relaxed["soft_drawdown_risk_pct"] = min(0.25, cfg["soft_drawdown_risk_pct"] + 0.02)
-        relaxed["adverse_return_bps"] = max(12.0, cfg["adverse_return_bps"] - 2.0)
+        relaxed["spread_constraint_bps"] = max(20.0, cfg["spread_constraint_bps"] - 2.0)
+        relaxed["min_edge_bps"] = max(1.0, cfg["min_edge_bps"] - 0.25)
+        relaxed["soft_drawdown_risk_pct"] = min(0.25, cfg["soft_drawdown_risk_pct"] + 0.01)
+        relaxed["adverse_return_bps"] = max(12.0, cfg["adverse_return_bps"] - 1.0)
+        relaxed["risk_off_inventory_scale"] = min(1.0, cfg.get("risk_off_inventory_scale", 0.5) + 0.05)
         variants.append((f"{format_name}_relaxed", relaxed))
     return variants[: max(1, int(max_combinations))]
 
@@ -232,6 +235,7 @@ def run_strategy_sweep(
                 "soft_drawdown_risk_pct": cfg["soft_drawdown_risk_pct"],
                 "hard_drawdown_stop_pct": cfg["hard_drawdown_stop_pct"],
                 "adverse_return_bps": cfg["adverse_return_bps"],
+                "risk_off_inventory_scale": cfg.get("risk_off_inventory_scale", 0.5),
             }
             if cfg["backtest_mode"] == "enhanced":
                 out = engine.run_backtest_enhanced(
@@ -268,6 +272,7 @@ def run_strategy_sweep(
                     soft_drawdown_risk_pct=cfg["soft_drawdown_risk_pct"],
                     hard_drawdown_stop_pct=cfg["hard_drawdown_stop_pct"],
                     adverse_return_bps=cfg["adverse_return_bps"],
+                    risk_off_inventory_scale=cfg.get("risk_off_inventory_scale", 0.5),
                     total_pnl=float(m.get("total_pnl", 0.0)),
                     sharpe_ratio=float(m.get("sharpe_ratio", 0.0)),
                     max_drawdown=max_drawdown,

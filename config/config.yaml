@@ -38,18 +38,18 @@ agents:
       volatility: 0.01
       initial_capital: 10000
       transaction_fee: 0.0002
-      spread_constraint_bps: 35.0
-      min_edge_bps: 2.0
-      cooldown_steps: 3
-      inventory_soft_limit_ratio: 0.5
-      target_volatility: 0.0035
-      vol_spread_scale: 1.3
-      soft_drawdown_risk_pct: 0.17
+      spread_constraint_bps: 40.0
+      min_edge_bps: 2.5
+      cooldown_steps: 4
+      inventory_soft_limit_ratio: 0.4
+      target_volatility: 0.0032
+      vol_spread_scale: 1.5
+      soft_drawdown_risk_pct: 0.14
       hard_drawdown_stop_pct: 0.4
-      adverse_return_bps: 14.0
-      risk_off_inventory_scale: 0.5
+      adverse_return_bps: 12.0
+      risk_off_inventory_scale: 0.35
       random_seed: 42
-      max_inventory: 5
+      max_inventory: 4
       volatility_window: 20
       use_signals: false
 

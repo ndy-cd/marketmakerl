@@ -16,4 +16,4 @@
 ## Decision
 
 - MVP is operational as a paper-trading platform.
-- Economic optimization is still in progress before live activation.
+- Reliability gates are green in the latest cycle; keep paper-only until repeated weekly cycles stay green.

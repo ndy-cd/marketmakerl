@@ -22,4 +22,5 @@ make realtime-paper EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m ITERATIONS=20
 
 - Commands complete without errors.
 - Expected artifacts are generated.
+- Walk-forward gate is strict and must exit successfully.
 - Live commands remain blocked while `PAPER_ONLY=1`.

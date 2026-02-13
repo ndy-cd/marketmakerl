@@ -31,5 +31,6 @@ Release gate criteria:
 ## Current Decision
 
 - Continue paper-only operation.
-- Use stable runtime preset and `make mvp-launch` workflow for paper rollout.
+- Use reliability runtime preset (`inventory_defensive_mm`) and `make mvp-launch` workflow for paper rollout.
+- Keep strict walk-forward gate enabled (`make walk-forward` fails the pipeline when gate is red).
 - Do not onboard exchange API keys until repeated paper cycles remain stable.

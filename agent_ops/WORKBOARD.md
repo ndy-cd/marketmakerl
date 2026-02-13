@@ -18,11 +18,11 @@ Stable paper-only MVP with clear technical and stakeholder documentation.
 
 3. `A3 Modeling Engineer` - `In Progress`
 - Scope: quote model behavior.
-- Focus: fee-aware behavior and reduced overtrading.
+- Focus: reliability-first preset tuning and regime adaptation.
 
-4. `A4 Backtest and Risk Engineer` - `In Progress`
+4. `A4 Backtest and Risk Engineer` - `Done`
 - Scope: backtest realism and risk controls.
-- Focus: execution probability model, drawdown discipline.
+- Result: strict walk-forward gate + reduced drawdown tail under reliability preset.
 
 5. `A5 QA and Integration Engineer` - `Done`
 - Scope: tests and integration.
@@ -35,7 +35,7 @@ Stable paper-only MVP with clear technical and stakeholder documentation.
 7. `A7 Quant Researcher` - `Done`
 - Scope: quant readiness gate.
 - Result: budget-tier/strategy-format research, walk-forward gate, and readiness verdict.
-- Current result: stable paper launch preset identified (`inventory_defensive_mm_relaxed`).
+- Current result: reliability preset selected (`inventory_defensive_mm`) with strict gate pass.
 
 8. `A8 Project Manager` - `Done`
 - Scope: MVP milestone governance.
@@ -53,5 +53,5 @@ make walk-forward EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30
 ## Current Decision
 
 - MVP remains `paper-only`.
-- Paper launch can proceed with the stable preset and walk-forward gate.
+- Paper launch can proceed with the reliability preset and strict walk-forward gate.
 - Do not connect exchange API keys until paper operations remain stable in repeated cycles.

@@ -233,7 +233,7 @@ class AgentRuntime:
             }
             execution_params = {k: v for k, v in execution_params.items() if v is not None}
 
-            backtest_mode = str(spec.params.get("backtest_mode", "enhanced")).lower()
+            backtest_mode = str(spec.params.get("backtest_mode", "standard")).lower()
             if backtest_mode == "standard":
                 result = engine.run_backtest(
                     model=model,

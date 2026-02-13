@@ -39,6 +39,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--initial-capital", type=float, default=10000.0)
     p.add_argument("--drawdown-fail-pct", type=float, default=0.40)
     p.add_argument("--min-pass-rate", type=float, default=0.60)
+    p.add_argument("--strict", action="store_true", help="Exit non-zero when gate does not pass")
     p.add_argument("--output-dir", default="artifacts/walk_forward")
     return p.parse_args()
 
@@ -89,22 +90,22 @@ def split_windows(df: pd.DataFrame, window_days: int) -> List[pd.DataFrame]:
 
 
 def build_runtime_params() -> Dict:
-    # Stable MVP preset selected from recent research.
+    # Reliability-first preset tuned for lower downside tail.
     return {
         "risk_aversion": 1.8,
         "time_horizon": 0.5,
-        "max_inventory": 5,
+        "max_inventory": 4,
         "transaction_fee": 0.0002,
-        "spread_constraint_bps": 35.0,
-        "min_edge_bps": 2.0,
-        "cooldown_steps": 3,
-        "inventory_soft_limit_ratio": 0.5,
-        "target_volatility": 0.0035,
-        "vol_spread_scale": 1.3,
-        "soft_drawdown_risk_pct": 0.17,
+        "spread_constraint_bps": 40.0,
+        "min_edge_bps": 2.5,
+        "cooldown_steps": 4,
+        "inventory_soft_limit_ratio": 0.4,
+        "target_volatility": 0.0032,
+        "vol_spread_scale": 1.5,
+        "soft_drawdown_risk_pct": 0.14,
         "hard_drawdown_stop_pct": 0.40,
-        "adverse_return_bps": 14.0,
-        "risk_off_inventory_scale": 0.5,
+        "adverse_return_bps": 12.0,
+        "risk_off_inventory_scale": 0.35,
         "volatility_window": 20,
         "random_seed": 42,
     }
@@ -227,6 +228,8 @@ def main() -> int:
         json.dump(report, f, indent=2)
 
     print(json.dumps({**report, "files": {"windows": str(runs_path), "report": str(report_path)}}, indent=2))
+    if args.strict and not gate["pass"]:
+        return 2
     return 0
 
 
