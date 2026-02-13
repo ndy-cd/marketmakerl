@@ -85,6 +85,7 @@ make campaign N=10
 make research-budgets EXCHANGE=binance SYMBOL=BTC/USDT
 make walk-forward EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30
 make daily-smoke EXCHANGE=binance SYMBOL=BTC/USDT ITERATIONS=2 POLL_SECONDS=1
+make quant-experiments EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30
 ```
 
 Research gate checks:
@@ -98,6 +99,8 @@ Research gate checks:
 - Platform reliability (Docker/test/runtime): operational.
 - Real data ingestion (public endpoints): operational.
 - Quant reliability: strict walk-forward gate currently passes with reliability preset.
+- Quant exploration: new strategy lab recommends `trend_shield` as current best robust profile.
+- Realization step-up: multisymbol paper shadow flow (`BTC/USDT`, `ETH/USDT`) operational.
 - Decision: continue in paper-only mode.
 
 ## 8) Team Roles

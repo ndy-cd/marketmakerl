@@ -13,6 +13,8 @@
 6. Realtime paper quote loop.
 7. Safety lock for live commands (`PAPER_ONLY=1`).
 8. Unit + integration + campaign workflows.
+9. Quant strategy experiments with robustness ranking (`make quant-experiments`).
+10. Multisymbol paper shadow flow (`make paper-multisymbol`).
 
 ## In Progress
 

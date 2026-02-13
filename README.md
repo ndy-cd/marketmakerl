@@ -47,6 +47,8 @@ make mvp-launch EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30
 make daily-smoke EXCHANGE=binance SYMBOL=BTC/USDT ITERATIONS=2 POLL_SECONDS=1
 make data-freshness EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m
 make weekly-report
+make quant-experiments EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30
+make realization-step EXCHANGE=binance SYMBOL=BTC/USDT SYMBOLS=BTC/USDT,ETH/USDT
 ```
 
 ## Policy

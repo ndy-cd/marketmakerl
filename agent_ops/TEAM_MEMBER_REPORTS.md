@@ -27,14 +27,16 @@ Report date: `2026-02-13`
 
 ## A3 Modeling Engineer
 
-- Status: `In Progress`
-- Plan review verdict: `Approved, requires calibration follow-up`
+- Status: `On Track`
+- Plan review verdict: `Approved, quant calibration executed`
 - Completed:
   - added regime-aware spread adjustment in realtime paper loop
+  - completed quant strategy lab and selected `trend_shield` as robust profile
 - Risks:
   - regime thresholds need calibration across assets
 - Next plan:
   - tune thresholds using rolling monthly data and compare against static mode
+  - extend regime logic to asset-specific thresholds
 
 ## A4 Backtest and Risk Engineer
 
@@ -42,6 +44,7 @@ Report date: `2026-02-13`
 - Plan review verdict: `Approved, add more real-data stress scenarios`
 - Completed:
   - added risk calibration scenario sweep (`make risk-calibration`)
+  - validated walk-forward strict pass with quant-selected preset
 - Risks:
   - scenario set currently synthetic-first; needs more real-data stress cases
 - Next plan:
@@ -77,10 +80,12 @@ Report date: `2026-02-13`
 - Completed:
   - maintained walk-forward strict gate passing profile
   - added weekly reliability report generator (`make weekly-report`)
+  - executed new quant experiments (`make quant-experiments`) and ranked strategies by robustness
 - Risks:
   - strategy robustness can degrade under regime shifts
 - Next plan:
   - publish weekly rolling report with drift deltas and recommendation
+  - track trend-shield drift versus inventory-tight as backup profile
 
 ## A8 Project Manager
 
@@ -88,6 +93,7 @@ Report date: `2026-02-13`
 - Plan review verdict: `Approved, enforce P0 closure SLA`
 - Completed:
   - consolidated strict plan and responsibilities for A1-A8
+  - launched realization step-up workflow (`make realization-step`)
 - Risks:
   - concurrent priorities can dilute focus on P0 reliability items
 - Next plan:

@@ -18,11 +18,12 @@ MAX_COMBINATIONS ?= 12
 ITERATIONS ?= 20
 POLL_SECONDS ?= 5
 SPREAD_CONSTRAINT ?= 0.001
+SYMBOLS ?= BTC/USDT,ETH/USDT
 SERVER ?=
 SERVER_DIR ?= /opt/marketmakerl
 PAPER_ONLY ?= 1
 
-.PHONY: help build run run-backtest run-live test test-unit test-integration validate live-guard compose-config campaign real-data-fetch analyze-last-month research-budgets walk-forward mvp-launch realtime-paper realtime-live daily-smoke data-freshness risk-calibration weekly-report deploy-server
+.PHONY: help build run run-backtest run-live test test-unit test-integration validate live-guard compose-config campaign real-data-fetch analyze-last-month research-budgets walk-forward mvp-launch realtime-paper realtime-live daily-smoke data-freshness risk-calibration weekly-report quant-experiments paper-multisymbol realization-step deploy-server
 
 help:
 	@echo "Targets:"
@@ -49,6 +50,9 @@ help:
 	@echo "  make data-freshness     - Verify public market-data freshness and schema health"
 	@echo "  make risk-calibration   - Run risk calibration scenario sweep"
 	@echo "  make weekly-report      - Build weekly reliability summary from latest artifacts"
+	@echo "  make quant-experiments  - Run quant strategy experiments with robustness ranking"
+	@echo "  make paper-multisymbol  - Run paper quote loop for symbols in SYMBOLS"
+	@echo "  make realization-step   - Quant experiments + weekly report + multisymbol paper run"
 	@echo "  make deploy-server SERVER=user@host [SERVER_DIR=/opt/marketmakerl]"
 	@echo "  make compose-config    - Validate compose config"
 
@@ -134,6 +138,20 @@ risk-calibration:
 
 weekly-report:
 	$(COMPOSE) run --rm agents python3 scripts/weekly_reliability_report.py
+
+quant-experiments:
+	$(COMPOSE) run --rm agents python3 scripts/quant_strategy_experiments.py --exchange $(EXCHANGE) --symbol $(SYMBOL) --timeframe 15m --days $(DAYS) --batch-limit $(BATCH_LIMIT) --window-days 5 --budgets 5000,10000
+
+paper-multisymbol:
+	@for sym in $$(echo "$(SYMBOLS)" | tr ',' ' '); do \
+		echo "[paper-multisymbol] $$sym"; \
+		$(COMPOSE) run --rm -e PAPER_ONLY=$(PAPER_ONLY) agents python3 scripts/run_realtime_strategy.py --exchange $(EXCHANGE) --symbol $$sym --timeframe $(TIMEFRAME) --iterations $(ITERATIONS) --poll-seconds $(POLL_SECONDS) --spread-constraint $(SPREAD_CONSTRAINT); \
+	done
+
+realization-step:
+	$(MAKE) quant-experiments EXCHANGE=$(EXCHANGE) SYMBOL=$(SYMBOL) DAYS=$(DAYS)
+	$(MAKE) weekly-report
+	$(MAKE) paper-multisymbol EXCHANGE=$(EXCHANGE) SYMBOLS=$(SYMBOLS) TIMEFRAME=1m ITERATIONS=5 POLL_SECONDS=1
 
 deploy-server:
 	@test -n "$(SERVER)" || (echo "SERVER is required, e.g. make deploy-server SERVER=user@host" && exit 1)

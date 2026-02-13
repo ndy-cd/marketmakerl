@@ -38,3 +38,9 @@ Validation highlights:
 - `make data-freshness ...` -> pass
 - `make risk-calibration` -> pass
 - `make weekly-report` -> pass
+
+Quant exploration and realization highlights:
+
+- `make quant-experiments EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30` -> pass
+- recommended profile: `trend_shield` (robustness winner, gate pass at budget 10k)
+- `make realization-step EXCHANGE=binance SYMBOL=BTC/USDT SYMBOLS=BTC/USDT,ETH/USDT` -> pass

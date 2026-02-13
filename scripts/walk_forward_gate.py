@@ -90,22 +90,22 @@ def split_windows(df: pd.DataFrame, window_days: int) -> List[pd.DataFrame]:
 
 
 def build_runtime_params() -> Dict:
-    # Reliability-first preset tuned for lower downside tail.
+    # Quant-selected trend-shield preset for reliability and stronger risk-adjusted returns.
     return {
-        "risk_aversion": 1.8,
-        "time_horizon": 0.5,
+        "risk_aversion": 1.6,
+        "time_horizon": 0.75,
         "max_inventory": 4,
         "transaction_fee": 0.0002,
-        "spread_constraint_bps": 40.0,
-        "min_edge_bps": 2.5,
+        "spread_constraint_bps": 39.0,
+        "min_edge_bps": 2.4,
         "cooldown_steps": 4,
         "inventory_soft_limit_ratio": 0.4,
-        "target_volatility": 0.0032,
+        "target_volatility": 0.0034,
         "vol_spread_scale": 1.5,
-        "soft_drawdown_risk_pct": 0.14,
+        "soft_drawdown_risk_pct": 0.15,
         "hard_drawdown_stop_pct": 0.40,
-        "adverse_return_bps": 12.0,
-        "risk_off_inventory_scale": 0.35,
+        "adverse_return_bps": 11.0,
+        "risk_off_inventory_scale": 0.33,
         "volatility_window": 20,
         "random_seed": 42,
     }
