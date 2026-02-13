@@ -1,74 +1,35 @@
 # Real Data Development Plan
 
-## Objective
-Move from simulation-first to real market data ingestion for a lightweight trading app, while keeping API-key usage optional until all non-live functionality is validated.
+Краткий план развития real-data части.
 
-## Current Status
-- Implemented real market data module: `src/data/real_market_data.py`
-- Supports public CEX endpoints for:
-  - klines (`fetch_klines`)
-  - order book (`fetch_order_book`)
-  - trades (`fetch_trades`)
-- Snapshot persistence implemented via `save_snapshot`
-- CLI fetch script: `scripts/fetch_real_market_data.py`
-- Make target: `make real-data-fetch`
-- Implemented realtime quote strategy loop: `scripts/run_realtime_strategy.py`
-- Implemented server deployment profile: `docker-compose.server.yml`
+## Текущий статус
 
-## Step-by-Step Delivery Plan
+- Public market data ingestion: `Implemented`
+- Realtime paper quote loop: `Implemented`
+- Quant gate по последнему месяцу: `Implemented`
+- Live onboarding: `Not allowed now` (paper-only policy)
 
-### Step 1: Public data ingestion (no keys)
-- Use public exchange endpoints for historical and near-real-time snapshots.
-- Validate schemas and persistence.
-- Done when:
-  - `make test-unit` passes new real-data tests
-  - `make real-data-fetch` writes snapshot files to `data/real`
+## Фазы
 
-### Step 2: Data quality and normalization
-- Add validation rules for missing/invalid values.
-- Enforce timestamp ordering and deduplication.
-- Add schema checks for each dataset.
+1. Data reliability
+- schema checks
+- dedup/order guarantees
 
-### Step 3: Incremental polling loop
-- Add short-interval polling service for lightweight operation.
-- Save append-only records (CSV/JSONL) for klines/orderbook/trades.
-- Add restart-safe checkpointing for last timestamps.
+2. Strategy economics
+- fee-aware logic
+- inventory/risk guard tuning
 
-### Step 4: Strategy wiring
-- Feed real snapshots into baseline Avellaneda pipeline in paper mode.
-- Keep execution disabled until risk controls are complete.
-- Compare against simulation baseline metrics.
-- Run real-time quote loop in server environment and collect quote stream artifacts.
+3. Execution readiness
+- execution adapter + reconciliation
+- kill switch + risk limits
 
-### Step 5: API-key onboarding (after full validation)
-- Introduce private endpoints only for execution/account context.
-- Keep data ingestion paths working without private keys.
-- Add strict secret management and startup guards.
+4. Live readiness gate
+- `readiness.ready_for_live_keys=true`
+- только после этого рассматривать API keys
 
-## Testing Plan
+## Команды контроля
 
-1. Unit tests (offline)
-- `tests/test_real_market_data.py` with mocked exchange client.
-- Expected: deterministic, no network dependency.
-
-2. Integration tests (Docker)
-- `make validate`
-- Expected: runtime + discovered tests + integration script pass.
-
-3. Real-data smoke (network, no keys)
-- `make real-data-fetch EXCHANGE=binance SYMBOL=BTC/USDT`
-- Expected: files in `data/real/` and metadata json printed.
-
-4. Campaign stability
-- `make campaign N=10`
-- Expected: campaign report with aggregated metrics.
-
-5. Last-month real-data strategy adaptation
-- `make analyze-last-month EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=5m DAYS=30 MAX_COMBINATIONS=12`
-- Expected: ranked strategy runs and best-parameter report under `artifacts/last_month_analysis/`.
-
-## Lightweight App Principles
-- Keep dependencies minimal (`ccxt`, `pandas`, standard library).
-- Prefer polling snapshots over heavy stream infra for MVP.
-- Use flat files and deterministic schemas first; move to DB only when needed.
-- Keep runtime safe-by-default (`mode=backtest`, guarded `mode=live`).
+```bash
+make real-data-fetch EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m
+make analyze-last-month EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=15m DAYS=30 MAX_COMBINATIONS=24
+```

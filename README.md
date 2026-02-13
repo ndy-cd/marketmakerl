@@ -41,3 +41,5 @@ make analyze-last-month EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=15m DAYS=30 M
 - Primary technical guide: `docs/PROJECT_GUIDE.md`
 - Stakeholder summary: `docs/STAKEHOLDER_MVP_BRIEF.md`
 - Deployment guide: `docs/DEPLOYMENT_GUIDE.md`
+- MVP plan: `docs/MVP_EXECUTION_PLAN.md`
+- Team workboard: `agent_ops/WORKBOARD.md`

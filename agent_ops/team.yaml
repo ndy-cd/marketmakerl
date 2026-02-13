@@ -12,6 +12,10 @@ coordination:
   quality_gate:
     required_checks:
       - "make validate"
+  current_workboard: "agent_ops/WORKBOARD.md"
+  current_policy:
+    paper_only_default: true
+    live_keys_allowed: false
 
 agents:
   - id: A1

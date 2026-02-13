@@ -2,24 +2,21 @@
 
 Source reviewed: `/Users/nody/codexpro/deep-research-report.md`
 
-## Incorporated into this setup
-- Enforced a single config-driven multi-agent runtime model.
-- Kept safe default mode as simulation/backtest-first.
-- Added explicit ownership boundaries so agents can work in parallel.
-- Added quality gates and integration-first workflow.
-- Added a Makefile command interface to improve reproducibility and reliability.
+## Incorporated
 
-## Open assumptions from the report
-- Exchange/venue and API credentials are not fixed yet.
-- Data cadence and symbol universe are not fixed yet.
-- Live execution policies and risk limits need explicit values before production use.
+- Единый config-driven runtime.
+- Paper-first policy with hard live block.
+- A1-A8 ownership model и общий workboard.
+- Gate-driven workflow через Make-команды.
 
-## Recommended merge sequence
-1. A1 runtime scaffolding and config contract.
-2. A2 data/signal schema hardening.
-3. A3 model guards and deterministic RL behavior.
-4. A4 pnl/risk accounting corrections.
-5. A5 regression tests, docs, and final acceptance gate.
-6. A6 documentation architecture and canonical project guide.
-7. A7 quant adaptation gates on recent real-data windows.
-8. A8 MVP milestone coordination and deployment readiness.
+## Open assumptions
+
+- Live execution adapter еще не внедрен.
+- Risk limits и kill-switch логика не финализированы.
+- Стратегия пока не проходит экономический quant gate.
+
+## Active sequence
+
+1. A3/A4: execution+risk+fee-aware redesign.
+2. A7: re-run quant gate до `ready_for_live_keys=true`.
+3. A5/A6: regression checks и docs sync.
