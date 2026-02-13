@@ -27,3 +27,4 @@ Supporting references:
 8. `agent_ops/TEAM_REVIEW_SIGNOFF.md` - final team review completion and execution sign-off.
 9. `agent_ops/TEAM_SYSTEM_CHECK_REPORT.md` - per-agent system step verification before analytics.
 10. `artifacts/dashboard/latest_stakeholder_dashboard.html` - latest stakeholder dashboard view.
+11. `docs/showcase/README.md` - stakeholder showcase snapshot and headline metrics.

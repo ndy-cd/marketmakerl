@@ -50,11 +50,14 @@ make weekly-report
 make quant-experiments EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30
 make realization-step EXCHANGE=binance SYMBOL=BTC/USDT SYMBOLS=BTC/USDT,ETH/USDT
 make stakeholder-dashboard
+make consistency-check
+make publish-showcase
 ```
 
 Stakeholder dashboard output:
 
 - `artifacts/dashboard/latest_stakeholder_dashboard.html`
+- `docs/showcase/stakeholder_dashboard.html` (committable snapshot for demos)
 
 ## Policy
 

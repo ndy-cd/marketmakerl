@@ -249,6 +249,32 @@ def main() -> int:
     passed = df[df["gate_pass"] == True].copy()  # noqa: E712
     recommended = (passed.iloc[0] if not passed.empty else df.iloc[0]).to_dict()
 
+    known_strategy_families = [
+        "inventory_defensive",
+        "trend_shield",
+        "volatility_brake",
+        "spread_capture",
+        "enhanced_signal_guarded",
+        "inventory_tight",
+        "conservative_mm",
+        "balanced_mm",
+        "cross_exchange_arb",
+        "latency_arb",
+        "options_hedged_mm",
+        "funding_basis_mm",
+    ]
+    tested_families = [
+        "inventory_defensive",
+        "trend_shield",
+        "volatility_brake",
+        "spread_capture",
+        "enhanced_signal_guarded",
+        "inventory_tight",
+        "conservative_mm",
+        "balanced_mm",
+    ]
+    untested_families = [x for x in known_strategy_families if x not in tested_families]
+
     report = {
         "meta": {
             "exchange": args.exchange,
@@ -261,6 +287,14 @@ def main() -> int:
             "strategies": [s.name for s in build_specs()],
         },
         "recommendation": recommended,
+        "coverage": {
+            "known_families_total": len(known_strategy_families),
+            "tested_families_count": len(tested_families),
+            "coverage_pct": (len(tested_families) / len(known_strategy_families)) * 100.0,
+            "tested_families": tested_families,
+            "untested_families": untested_families,
+            "note": "MVP paper phase focuses on market-making families; non-MM families remain future work.",
+        },
         "gate_pass_count": int(df["gate_pass"].sum()),
         "total_cases": int(len(df)),
         "top_10": df.head(10).to_dict(orient="records"),

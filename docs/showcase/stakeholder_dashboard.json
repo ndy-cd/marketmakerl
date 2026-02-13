@@ -1,0 +1,205 @@
+{
+  "generated_utc": "2026-02-13T11:48:51.227770+00:00",
+  "cards": {
+    "overall_status": "READY FOR MVP SHOWCASE",
+    "walk_forward_pass": "PASS",
+    "campaign_mean_pnl": 674.3722910805473,
+    "campaign_mean_sharpe": 1.2521251052751612,
+    "quant_strategy": "defensive_core",
+    "quant_dd_pct": 0.25275587755561285
+  },
+  "quant_top": [
+    {
+      "strategy": "trend_shield",
+      "budget": 5000.0,
+      "total_pnl": 67116.62651767026,
+      "sharpe_ratio": 1.9933420188843072,
+      "max_drawdown": 3741.0419837456284,
+      "max_drawdown_pct": 0.7482083967491256,
+      "n_trades": 432.0,
+      "pass_rate": 0.8333333333333334,
+      "hard_fail_windows": 1,
+      "robustness_score": 14.332050817721957,
+      "gate_pass": false
+    },
+    {
+      "strategy": "defensive_core",
+      "budget": 10000.0,
+      "total_pnl": 70275.24985757908,
+      "sharpe_ratio": 2.365514282438978,
+      "max_drawdown": 2527.5587755561282,
+      "max_drawdown_pct": 0.25275587755561285,
+      "n_trades": 444.0,
+      "pass_rate": 1.0,
+      "hard_fail_windows": 0,
+      "robustness_score": 13.000285917969025,
+      "gate_pass": true
+    },
+    {
+      "strategy": "defensive_core",
+      "budget": 5000.0,
+      "total_pnl": 70275.24985757936,
+      "sharpe_ratio": 2.0371663322181246,
+      "max_drawdown": 2527.5587755561282,
+      "max_drawdown_pct": 0.5055117551112257,
+      "n_trades": 444.0,
+      "pass_rate": 0.6666666666666666,
+      "hard_fail_windows": 2,
+      "robustness_score": 12.946180703951779,
+      "gate_pass": false
+    },
+    {
+      "strategy": "trend_shield",
+      "budget": 10000.0,
+      "total_pnl": 67116.62651767026,
+      "sharpe_ratio": 2.3023283556239145,
+      "max_drawdown": 3741.0419837456284,
+      "max_drawdown_pct": 0.3741041983745628,
+      "n_trades": 432.0,
+      "pass_rate": 1.0,
+      "hard_fail_windows": 0,
+      "robustness_score": 12.194006767891167,
+      "gate_pass": true
+    },
+    {
+      "strategy": "inventory_tight",
+      "budget": 10000.0,
+      "total_pnl": 56997.69026254272,
+      "sharpe_ratio": 2.076861858101923,
+      "max_drawdown": 4558.48663218999,
+      "max_drawdown_pct": 0.455848663218999,
+      "n_trades": 377.0,
+      "pass_rate": 1.0,
+      "hard_fail_windows": 0,
+      "robustness_score": 10.48594675280112,
+      "gate_pass": false
+    },
+    {
+      "strategy": "volatility_brake",
+      "budget": 5000.0,
+      "total_pnl": 64853.39407193079,
+      "sharpe_ratio": 2.0366260087203014,
+      "max_drawdown": 5123.671355235114,
+      "max_drawdown_pct": 1.0247342710470229,
+      "n_trades": 365.0,
+      "pass_rate": 0.6666666666666666,
+      "hard_fail_windows": 2,
+      "robustness_score": 10.303061352019023,
+      "gate_pass": false
+    },
+    {
+      "strategy": "spread_capture",
+      "budget": 10000.0,
+      "total_pnl": 75407.24681780735,
+      "sharpe_ratio": 2.477536607126242,
+      "max_drawdown": 5058.729391729692,
+      "max_drawdown_pct": 0.5058729391729692,
+      "n_trades": 562.0,
+      "pass_rate": 0.8333333333333334,
+      "hard_fail_windows": 1,
+      "robustness_score": 10.144845745180977,
+      "gate_pass": false
+    },
+    {
+      "strategy": "spread_capture",
+      "budget": 5000.0,
+      "total_pnl": 75407.24681780697,
+      "sharpe_ratio": 2.165925863781392,
+      "max_drawdown": 5058.729391729721,
+      "max_drawdown_pct": 1.0117458783459443,
+      "n_trades": 562.0,
+      "pass_rate": 0.5,
+      "hard_fail_windows": 3,
+      "robustness_score": 9.878063456086341,
+      "gate_pass": false
+    }
+  ],
+  "explored_strategies": [
+    {
+      "strategy_format": "balanced_mm",
+      "cases": 3.0,
+      "mean_pnl": 80872.76119489878,
+      "mean_sharpe": 2.4602843080054484,
+      "mean_drawdown_pct": 1.365477831818336,
+      "pass_rate_40pct_dd": 0.0
+    },
+    {
+      "strategy_format": "balanced_mm_relaxed",
+      "cases": 3.0,
+      "mean_pnl": 64939.19815496082,
+      "mean_sharpe": 2.121730221631841,
+      "mean_drawdown_pct": 1.071751290340153,
+      "pass_rate_40pct_dd": 0.0
+    },
+    {
+      "strategy_format": "conservative_mm",
+      "cases": 3.0,
+      "mean_pnl": 57481.23901869764,
+      "mean_sharpe": 1.944692566244088,
+      "mean_drawdown_pct": 2.8153794895389623,
+      "pass_rate_40pct_dd": 0.0
+    },
+    {
+      "strategy_format": "conservative_mm_relaxed",
+      "cases": 3.0,
+      "mean_pnl": 50140.850262209744,
+      "mean_sharpe": 1.8477781472694907,
+      "mean_drawdown_pct": 2.5447373491072556,
+      "pass_rate_40pct_dd": 0.0
+    },
+    {
+      "strategy_format": "enhanced_signal_mm",
+      "cases": 3.0,
+      "mean_pnl": 48040.558905459904,
+      "mean_sharpe": 1.7803377416009611,
+      "mean_drawdown_pct": 1.0326848054954436,
+      "pass_rate_40pct_dd": 0.0
+    },
+    {
+      "strategy_format": "enhanced_signal_mm_relaxed",
+      "cases": 3.0,
+      "mean_pnl": 43207.78944779225,
+      "mean_sharpe": 1.5569771327187618,
+      "mean_drawdown_pct": 1.7118880153314635,
+      "pass_rate_40pct_dd": 0.0
+    },
+    {
+      "strategy_format": "inventory_defensive_mm",
+      "cases": 3.0,
+      "mean_pnl": 72970.13957985591,
+      "mean_sharpe": 2.162872676626057,
+      "mean_drawdown_pct": 0.5897637142964299,
+      "pass_rate_40pct_dd": 0.3333333333333333
+    },
+    {
+      "strategy_format": "inventory_defensive_mm_relaxed",
+      "cases": 3.0,
+      "mean_pnl": 59107.93887636644,
+      "mean_sharpe": 1.971725264089617,
+      "mean_drawdown_pct": 0.8946698169795594,
+      "pass_rate_40pct_dd": 0.3333333333333333
+    }
+  ],
+  "capabilities": [
+    "Docker-first orchestration with repeatable reliability gates",
+    "Paper-only realtime quoting with public market data (no API keys)",
+    "Backtest + walk-forward risk gating with strict drawdown controls",
+    "Quant strategy laboratory with robustness ranking and recommendation",
+    "Multisymbol paper shadow operation for rollout rehearsal",
+    "Operational cadence: daily smoke, weekly reliability report, failure triage"
+  ],
+  "strategic_profitability_path": [
+    "Exploit regime-adaptive profiles: keep trend-shield as primary and inventory-tight as backup",
+    "Allocate capital by robustness score and drawdown efficiency, not by raw PnL",
+    "Run weekly rolling re-optimization and replace profile only when strict gates remain green",
+    "Improve execution quality (fill/slippage calibration) before increasing strategy aggressiveness",
+    "Scale symbols gradually via shadow paper expansion, then promote only stable symbols"
+  ],
+  "files": {
+    "campaign": "artifacts/campaign_20260213T041008Z/campaign_report.json",
+    "analysis": "artifacts/last_month_analysis/20260213T041024Z_analysis.json",
+    "walk_forward": "artifacts/walk_forward/20260213T053933Z_walk_forward_report.json",
+    "weekly": "artifacts/weekly/20260213T053823Z_weekly_reliability_report.json",
+    "quant": "artifacts/quant_experiments/20260213T114753Z_quant_experiments.json"
+  }
+}
