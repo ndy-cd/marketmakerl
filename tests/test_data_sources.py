@@ -1,4 +1,5 @@
 import unittest
+import uuid
 
 import pandas as pd
 
@@ -16,10 +17,11 @@ class TestDataSources(unittest.TestCase):
         self.assertIn("mid_price", df.columns)
         self.assertIn("spread", df.columns)
 
-        ok = self.processor.save_to_file(df, "tests_tmp_market_data.csv")
+        tmp_name = f"tests_tmp_market_data_{uuid.uuid4().hex}.csv"
+        ok = self.processor.save_to_file(df, tmp_name)
         self.assertTrue(ok)
 
-        loaded = self.processor.load_from_file("tests_tmp_market_data.csv")
+        loaded = self.processor.load_from_file(tmp_name)
         self.assertGreater(len(loaded), 0)
         self.assertIn("mid_price", loaded.columns)
 

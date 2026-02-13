@@ -98,3 +98,32 @@ agents:
       - docs/PROJECT_GUIDE.md
       - updated README.md navigation
       - docs-oriented acceptance checklist
+
+  - id: A7
+    name: Quant Researcher
+    skill: quant-researcher
+    prompt_file: agent_ops/prompts/a7_quant_researcher.md
+    owns_paths:
+      - scripts/analyze_last_month_strategy.py
+      - artifacts/last_month_analysis/
+      - docs/test_strategy.md
+      - docs/REAL_DATA_DEVELOPMENT_PLAN.md
+    mission: "Design and validate parameter adaptation from recent real market data before live key onboarding"
+    deliverables:
+      - last-month parameter sweep definitions
+      - readiness criteria for live key activation
+      - strategy adaptation report inputs
+
+  - id: A8
+    name: Project Manager
+    skill: project-manager
+    prompt_file: agent_ops/prompts/a8_project_manager.md
+    owns_paths:
+      - agent_ops/
+      - docs/
+      - Makefile
+    mission: "Coordinate MVP completion, enforce milestones and acceptance gates, and keep delivery plan executable"
+    deliverables:
+      - MVP milestone checklist
+      - phase-by-phase execution plan with owners
+      - release readiness gate summary

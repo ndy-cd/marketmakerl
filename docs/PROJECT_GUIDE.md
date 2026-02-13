@@ -40,11 +40,20 @@ It is designed for both human contributors and AI agents.
 - `src/data/real_market_data.py`
 - `scripts/fetch_real_market_data.py`
 
+8. Realtime strategy quote loop (server-ready)
+- `scripts/run_realtime_strategy.py`
+- `docker-compose.server.yml`
+- `scripts/deploy_server.sh`
+
 ## Runtime Modes
 
 - `backtest`: safe default, simulation-only execution
 - `paper`: reserved mode for paper trading paths
 - `live`: requires credentials and fails fast if missing
+
+Current policy:
+- `PAPER_ONLY=1` is the default and live mode is blocked.
+- MVP operation is paper/simulation only until quant and risk gates are satisfied.
 
 Live mode environment requirements:
 - `EXCHANGE_API_KEY`
@@ -136,6 +145,39 @@ Expected result:
 - Snapshot files written under `data/real/`
 - Console JSON includes file paths and metadata row counts
 
+### Analyze last-month strategy (public data, no keys)
+
+```bash
+make analyze-last-month EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=5m DAYS=30 MAX_COMBINATIONS=12
+```
+
+Expected result:
+- Last-month klines fetched
+- Parameter sweep completed
+- Analysis JSON + CSV files written to `artifacts/last_month_analysis/`
+- Report includes a `readiness` block (`ready_for_live_keys`) for pre-live gating
+
+### Realtime strategy loop (public data)
+
+```bash
+make realtime-paper EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m ITERATIONS=20
+```
+
+Expected result:
+- Real market data snapshots are polled each iteration
+- Bid/ask quotes are emitted as JSON lines
+- Output JSONL saved under `artifacts/realtime/`
+
+### Server deployment
+
+```bash
+make deploy-server SERVER=user@host SERVER_DIR=/opt/marketmakerl
+```
+
+Expected result:
+- Repository synced to server
+- `realtime-strategy` container built and started via `docker-compose.server.yml`
+
 ### Live mode (guarded)
 
 Without secrets, expected failure:
@@ -152,6 +194,9 @@ With secrets:
 ```bash
 EXCHANGE_API_KEY=your_key EXCHANGE_API_SECRET=your_secret make run-live
 ```
+
+Note:
+- If `PAPER_ONLY=1`, live mode is intentionally blocked even with keys.
 
 ## How To Test
 
@@ -188,9 +233,8 @@ Make and Docker-equivalent commands are above.
 1. Connect real exchange execution paths
 - Extend `DataProcessor.connect_exchange()` and execution role path.
 
-2. Replace Gym with Gymnasium
-- `src/models/rl_enhanced_model.py` currently imports `gym`.
-- Runtime works, but Gym emits deprecation warnings.
+2. Tune liquidation and inventory policy on real-data windows
+- Re-run `make analyze-last-month` by symbol/timeframe and update `max_inventory` defaults accordingly.
 
 3. Add strict metrics schema validation
 - Validate `artifacts/*_metrics.json` against a JSON schema.
@@ -200,6 +244,10 @@ Make and Docker-equivalent commands are above.
 
 5. Expand risk role
 - Move from scaffold report to real risk controls and kill-switch behavior.
+
+6. Implement order execution adapter
+- Current realtime service is quote generation only.
+- Add private-endpoint order placement and position reconciliation before production trading.
 
 ## AI Agent Onboarding
 
@@ -247,6 +295,10 @@ make build
 - `docs/FEATURE_CATALOG.md`: full feature inventory with implementation status
 - `docs/IMPLEMENTED_CHANGES.md`: detailed record of implemented changes
 - `docs/REAL_DATA_DEVELOPMENT_PLAN.md`: staged migration plan to real data and lightweight trading
+- `docs/MVP_EXECUTION_PLAN.md`: milestone ownership and delivery gates
+- `docs/STAKEHOLDER_MVP_BRIEF.md`: stakeholder-facing MVP status and demo script
+- `docs/MVP_SIGNOFF_CHECKLIST.md`: signoff checklist for launch readiness
+- `docs/DEPLOYMENT_GUIDE.md`: remote server deployment and operations
 - `docs/completed_enhancements.md`: MVP enhancement summary
 - `docs/documentation_acceptance_checklist.md`: doc quality gate
 - `Makefile`: canonical command interface for run/test/validate

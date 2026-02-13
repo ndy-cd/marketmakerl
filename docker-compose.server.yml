@@ -1,0 +1,31 @@
+services:
+  realtime-strategy:
+    image: marketmakerl-agents:latest
+    working_dir: /app
+    environment:
+      PYTHONPATH: /app
+      MPLCONFIGDIR: /tmp/matplotlib
+      PAPER_ONLY: ${PAPER_ONLY:-1}
+      EXCHANGE_API_KEY: ${EXCHANGE_API_KEY:-}
+      EXCHANGE_API_SECRET: ${EXCHANGE_API_SECRET:-}
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./artifacts:/app/artifacts
+    command:
+      [
+        "python3",
+        "scripts/run_realtime_strategy.py",
+        "--exchange",
+        "${EXCHANGE:-binance}",
+        "--symbol",
+        "${SYMBOL:-BTC/USDT}",
+        "--timeframe",
+        "${TIMEFRAME:-1m}",
+        "--iterations",
+        "${ITERATIONS:-0}",
+        "--poll-seconds",
+        "${POLL_SECONDS:-5}",
+        "--spread-constraint",
+        "${SPREAD_CONSTRAINT:-0.001}"
+      ]

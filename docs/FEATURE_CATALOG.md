@@ -46,6 +46,11 @@ This file documents all current features and their implementation status.
 - Script: `scripts/fetch_real_market_data.py`
 - Notes: optimized for lightweight snapshot polling and storage.
 
+5. Realtime quote strategy loop (`Implemented`)
+- Script: `scripts/run_realtime_strategy.py`
+- Data source: public CEX market data via ccxt
+- Outputs: JSONL quote stream under `artifacts/realtime/`
+
 5. CEX-onchain synchronization (`Implemented`)
 - File: `src/data/data_processor.py`
 - Function: `sync_cex_with_onchain`
@@ -67,9 +72,9 @@ This file documents all current features and their implementation status.
 - File: `src/models/avellaneda_stoikov.py`
 - Core: reservation price + spread logic, inventory awareness, quote bounds.
 
-3. RL-enhanced model and env (`Implemented`, with deprecation warning)
+3. RL-enhanced model and env (`Implemented`)
 - File: `src/models/rl_enhanced_model.py`
-- Notes: works in current flow, but depends on `gym` which is deprecated upstream.
+- Notes: uses `gymnasium` environment interface.
 
 ## Backtesting
 
@@ -77,6 +82,7 @@ This file documents all current features and their implementation status.
 - File: `src/backtesting/backtest_engine.py`
 - Functions: `run_backtest`, `run_backtest_enhanced`
 - Outputs: metrics/trades/positions.
+- Supports strategy parameter passthrough (including `spread_constraint`) from backtest params.
 
 2. Latency and signal-influenced behavior (`Implemented`)
 - File: `src/backtesting/backtest_engine.py`
@@ -103,6 +109,11 @@ This file documents all current features and their implementation status.
 - Script: `scripts/run_backtest_campaign.sh`
 - Output: `artifacts/campaign_<timestamp>/campaign_report.json`
 
+5. Last-month quant adaptation gate (`Implemented`)
+- Command: `make analyze-last-month ...`
+- Script: `scripts/analyze_last_month_strategy.py`
+- Output: ranked strategies + readiness verdict under `artifacts/last_month_analysis/`
+
 ## Documentation and Agent Ops
 
 1. Canonical project guide (`Implemented`)
@@ -116,3 +127,9 @@ This file documents all current features and their implementation status.
 
 4. Parallel agent plan, prompts, skills (`Implemented`)
 - Files: `agent_ops/team.yaml`, `agent_ops/prompts/*`, `agent_ops/skills/*`
+
+5. Server deployment workflow (`Implemented`)
+- Files: `docker-compose.server.yml`, `scripts/deploy_server.sh`, `docs/DEPLOYMENT_GUIDE.md`
+
+6. Stakeholder MVP package (`Implemented`)
+- Files: `docs/STAKEHOLDER_MVP_BRIEF.md`, `docs/MVP_SIGNOFF_CHECKLIST.md`, `docs/MVP_EXECUTION_PLAN.md`

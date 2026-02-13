@@ -90,7 +90,8 @@ class BacktestEngine:
                 model.set_parameters(volatility=volatility)
                 
             # Get model quotes
-            bid_price, ask_price = model.calculate_optimal_quotes(mid_price)
+            spread_constraint = params.get("spread_constraint") if isinstance(params, dict) else None
+            bid_price, ask_price = model.calculate_optimal_quotes(mid_price, spread_constraint=spread_constraint)
             
             # Simulate market interactions (simple model)
             bid_executed, ask_executed = self._simulate_executions(bid_price, ask_price, row)
@@ -105,10 +106,18 @@ class BacktestEngine:
             # Check inventory limits
             if abs(self.inventory) >= max_inventory:
                 # Force liquidation at market price with penalty
-                liquidation_size = self.inventory
-                liquidation_price = mid_price * (0.98 if self.inventory > 0 else 1.02)
-                self._process_trade(timestamp, 'LIQUIDATION', liquidation_price, -liquidation_size, mid_price)
-                logger.warning(f"Forced liquidation at step {i}, inventory: {self.inventory}")
+                inventory_before_liquidation = self.inventory
+                liquidation_price = mid_price * (0.98 if inventory_before_liquidation > 0 else 1.02)
+                self._process_trade(
+                    timestamp,
+                    'LIQUIDATION',
+                    liquidation_price,
+                    inventory_before_liquidation,
+                    mid_price,
+                )
+                logger.warning(
+                    f"Forced liquidation at step {i}, inventory_before: {inventory_before_liquidation}"
+                )
                 
             # Record position at this step
             self.positions.append({
@@ -202,7 +211,8 @@ class BacktestEngine:
                 model.set_parameters(**params_update)
                 
             # Get model quotes
-            bid_price, ask_price = model.calculate_optimal_quotes(mid_price)
+            spread_constraint = params.get("spread_constraint") if isinstance(params, dict) else None
+            bid_price, ask_price = model.calculate_optimal_quotes(mid_price, spread_constraint=spread_constraint)
             
             # Adjust quotes based on short-term price prediction if available
             if 'price_move_signal' in market_features:
@@ -229,10 +239,18 @@ class BacktestEngine:
             # Check inventory limits
             if abs(self.inventory) >= max_inventory:
                 # Force liquidation at market price with penalty
-                liquidation_size = self.inventory
-                liquidation_price = mid_price * (0.98 if self.inventory > 0 else 1.02)
-                self._process_trade(timestamp, 'LIQUIDATION', liquidation_price, -liquidation_size, mid_price)
-                logger.warning(f"Forced liquidation at step {i}, inventory: {self.inventory}")
+                inventory_before_liquidation = self.inventory
+                liquidation_price = mid_price * (0.98 if inventory_before_liquidation > 0 else 1.02)
+                self._process_trade(
+                    timestamp,
+                    'LIQUIDATION',
+                    liquidation_price,
+                    inventory_before_liquidation,
+                    mid_price,
+                )
+                logger.warning(
+                    f"Forced liquidation at step {i}, inventory_before: {inventory_before_liquidation}"
+                )
                 
             # Record position at this step
             self.positions.append({
@@ -304,7 +322,7 @@ class BacktestEngine:
             self.inventory -= quantity
             self.capital += price * quantity - fee
         elif side == 'LIQUIDATION':
-            # For liquidation, quantity is the negative inventory to reset to zero
+            # Quantity is signed inventory before liquidation. Positive means sell, negative means buy-to-cover.
             self.capital += price * quantity - fee
             self.inventory = 0
             

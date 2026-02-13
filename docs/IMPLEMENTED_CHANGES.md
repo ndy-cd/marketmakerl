@@ -59,6 +59,55 @@ This document tracks the concrete implementation changes made to make the projec
   - `docs/FEATURE_CATALOG.md`
   - `docs/REAL_DATA_DEVELOPMENT_PLAN.md`
 
+9. RL dependency migration to Gymnasium
+- Updated:
+  - `src/models/rl_enhanced_model.py`
+  - `requirements.txt`
+  - `docker/requirements.runtime.txt`
+- Result: removed deprecated Gym dependency and aligned env interface with Gymnasium.
+
+10. Liquidation accounting fix in backtest engine
+- Updated:
+  - `src/backtesting/backtest_engine.py`
+- Added:
+  - `tests/test_backtest_liquidation.py`
+- Result: forced-liquidation cashflow and logging are consistent with inventory sign and state transitions.
+
+11. Last-month strategy analysis workflow
+- Added:
+  - `scripts/analyze_last_month_strategy.py`
+- Updated:
+  - `Makefile` (`make analyze-last-month`)
+  - `src/backtesting/backtest_engine.py` (strategy param passthrough including spread floor)
+- Result: reproducible no-key analysis flow for real public data and parameter sweep before live key onboarding.
+
+12. Realtime strategy service and server deployment path
+- Added:
+  - `scripts/run_realtime_strategy.py`
+  - `docker-compose.server.yml`
+  - `scripts/deploy_server.sh`
+- Updated:
+  - `Makefile` (`make realtime-paper`, `make realtime-live`, `make deploy-server`)
+- Result: deployable real-data quote loop service for remote server operation.
+
+13. Agent team expansion (quant + PM)
+- Added:
+  - `agent_ops/prompts/a7_quant_researcher.md`
+  - `agent_ops/prompts/a8_project_manager.md`
+  - `agent_ops/skills/quant-researcher/SKILL.md`
+  - `agent_ops/skills/project-manager/SKILL.md`
+- Updated:
+  - `agent_ops/team.yaml`
+- Result: explicit ownership for research gating and MVP delivery coordination.
+
+14. Paper-only runtime lock
+- Updated:
+  - `Makefile`
+  - `src/agents/base.py`
+  - `scripts/run_realtime_strategy.py`
+  - `docker-compose.server.yml`
+- Result: live commands are blocked while `PAPER_ONLY=1` (default), enforcing paper-first MVP operation.
+
 ## Validation Evidence
 
 Primary command:

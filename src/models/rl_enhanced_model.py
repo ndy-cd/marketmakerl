@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 import logging
 import time
 from datetime import datetime
@@ -68,13 +68,14 @@ class MarketMakingEnv(gym.Env):
             dtype=np.float32
         )
         
-    def reset(self):
+    def reset(self, *, seed=None, options=None):
         """
         Reset the environment to initial state
         
         Returns:
             np.array: Initial observation
         """
+        super().reset(seed=seed)
         self.capital = self.initial_capital
         self.inventory = 0
         self.current_step = 0
@@ -84,7 +85,7 @@ class MarketMakingEnv(gym.Env):
         # Get first market state
         self._update_market_state()
         
-        return self._get_observation()
+        return self._get_observation(), {}
         
     def _update_market_state(self):
         """Update the current market state from market data"""
@@ -132,7 +133,7 @@ class MarketMakingEnv(gym.Env):
             tuple: (observation, reward, done, info)
         """
         if self.done:
-            return self._get_observation(), 0, True, {}
+            return self._get_observation(), 0.0, True, False, {}
             
         # Parse action
         bid_offset, ask_offset, bid_size_norm, ask_size_norm = action
@@ -197,7 +198,7 @@ class MarketMakingEnv(gym.Env):
                 liquidation_pnl = self.inventory * (liquidation_price - self.current_price)
                 self.capital += liquidation_pnl
         
-        return self._get_observation(), reward, self.done, {'pnl': pnl, 'inventory': self.inventory}
+        return self._get_observation(), reward, self.done, False, {'pnl': pnl, 'inventory': self.inventory}
         
     def _simulate_order_fills(self, bid_price, ask_price, bid_size, ask_size):
         """
@@ -347,7 +348,7 @@ class RLEnhancedModel:
         if 'market_features' in kwargs:
             self.market_features = kwargs['market_features']
         
-    def calculate_optimal_quotes(self, mid_price, market_features=None):
+    def calculate_optimal_quotes(self, mid_price, market_features=None, spread_constraint=None):
         """
         Calculate optimal bid and ask prices using RL enhancement
         
@@ -363,7 +364,9 @@ class RLEnhancedModel:
             market_features = self.market_features
             
         # Get base model quotes
-        base_bid, base_ask = self.base_model.calculate_optimal_quotes(mid_price)
+        base_bid, base_ask = self.base_model.calculate_optimal_quotes(
+            mid_price, spread_constraint=spread_constraint
+        )
         
         # If we have a trained RL model, use it to adjust the quotes
         if self.rl_model is not None and market_features is not None:

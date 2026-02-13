@@ -103,6 +103,9 @@ class AgentRuntime:
         self.logger.log(level, f"{event} | {payload}")
 
     def _ensure_live_secrets(self) -> None:
+        paper_only = str(os.getenv("PAPER_ONLY", "0")).lower() in {"1", "true", "yes"}
+        if paper_only:
+            raise ValueError("mode=live is disabled while PAPER_ONLY=1")
         required = ["EXCHANGE_API_KEY", "EXCHANGE_API_SECRET"]
         missing = [key for key in required if not os.getenv(key)]
         if missing:
@@ -234,7 +237,7 @@ class AgentRuntime:
                 "max_drawdown": float((returns.cumsum().max() - returns.cumsum().min()) * initial_capital),
                 "n_trades": int(len(frame) // 5),
                 "sharpe_ratio": float(returns.mean() / returns.std() * (252**0.5)) if returns.std() > 0 else 0.0,
-                "execution_mode": "fallback_no_gym",
+                "execution_mode": "fallback_no_rl_runtime",
             }
         metrics_path = self.artifacts_dir / f"{self.run_id}_{spec.name}_metrics.json"
         with open(metrics_path, "w", encoding="utf-8") as fh:

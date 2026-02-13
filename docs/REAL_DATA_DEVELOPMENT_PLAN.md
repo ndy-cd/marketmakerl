@@ -12,6 +12,8 @@ Move from simulation-first to real market data ingestion for a lightweight tradi
 - Snapshot persistence implemented via `save_snapshot`
 - CLI fetch script: `scripts/fetch_real_market_data.py`
 - Make target: `make real-data-fetch`
+- Implemented realtime quote strategy loop: `scripts/run_realtime_strategy.py`
+- Implemented server deployment profile: `docker-compose.server.yml`
 
 ## Step-by-Step Delivery Plan
 
@@ -36,6 +38,7 @@ Move from simulation-first to real market data ingestion for a lightweight tradi
 - Feed real snapshots into baseline Avellaneda pipeline in paper mode.
 - Keep execution disabled until risk controls are complete.
 - Compare against simulation baseline metrics.
+- Run real-time quote loop in server environment and collect quote stream artifacts.
 
 ### Step 5: API-key onboarding (after full validation)
 - Introduce private endpoints only for execution/account context.
@@ -59,6 +62,10 @@ Move from simulation-first to real market data ingestion for a lightweight tradi
 4. Campaign stability
 - `make campaign N=10`
 - Expected: campaign report with aggregated metrics.
+
+5. Last-month real-data strategy adaptation
+- `make analyze-last-month EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=5m DAYS=30 MAX_COMBINATIONS=12`
+- Expected: ranked strategy runs and best-parameter report under `artifacts/last_month_analysis/`.
 
 ## Lightweight App Principles
 - Keep dependencies minimal (`ccxt`, `pandas`, standard library).

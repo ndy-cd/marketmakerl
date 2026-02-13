@@ -21,3 +21,5 @@ Source reviewed: `/Users/nody/codexpro/deep-research-report.md`
 4. A4 pnl/risk accounting corrections.
 5. A5 regression tests, docs, and final acceptance gate.
 6. A6 documentation architecture and canonical project guide.
+7. A7 quant adaptation gates on recent real-data windows.
+8. A8 MVP milestone coordination and deployment readiness.

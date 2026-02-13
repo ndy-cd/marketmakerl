@@ -16,6 +16,7 @@ This document summarizes enhancements that are implemented now and aligned with 
 - Files: `scripts/run_agents.py`, `src/agents/base.py`, `config/config.yaml`
 - Roles: `data`, `ml`, `execution`, `risk`
 - Modes: `backtest`, `paper`, `live` (guarded)
+ - Team extensions: `A7 Quant Researcher`, `A8 Project Manager` in `agent_ops/team.yaml`
 
 ## Data and Signal Pipeline
 
@@ -31,12 +32,17 @@ This document summarizes enhancements that are implemented now and aligned with 
 - Make target: `make real-data-fetch`
 - Outputs: `data/real/*_{klines,orderbook_bids,orderbook_asks,trades,meta}.*`
 
+4. Realtime strategy quote loop is implemented.
+- File: `scripts/run_realtime_strategy.py`
+- Make targets: `make realtime-paper`, `make realtime-live`
+- Outputs: quote stream JSONL under `artifacts/realtime/`
+
 ## Modeling and Backtesting
 
 1. Baseline Avellaneda-Stoikov model is implemented.
 - File: `src/models/avellaneda_stoikov.py`
 
-2. RL-enhanced model path is implemented (with Gym deprecation warning).
+2. RL-enhanced model path is implemented.
 - File: `src/models/rl_enhanced_model.py`
 
 3. Standard and enhanced backtests are implemented.
