@@ -3,15 +3,15 @@ import glob
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 
-def latest(pattern: str) -> str | None:
+def latest(pattern: str) -> Optional[str]:
     files = sorted(glob.glob(pattern))
     return files[-1] if files else None
 
 
-def read_json(path: str | None) -> dict[str, Any] | None:
+def read_json(path: Optional[str]) -> Optional[Dict[str, Any]]:
     if not path:
         return None
     with open(path, "r", encoding="utf-8") as f:
@@ -26,7 +26,7 @@ def safe(v: Any, default: Any = "n/a") -> Any:
     return default if v is None else v
 
 
-def build_html(payload: dict[str, Any]) -> str:
+def build_html(payload: Dict[str, Any]) -> str:
     c = payload["cards"]
     quant_top = payload["quant_top"]
     explored = payload["explored_strategies"]
@@ -35,7 +35,7 @@ def build_html(payload: dict[str, Any]) -> str:
     files = payload["files"]
 
     rows = "".join(
-        f"<tr><td>{r['strategy']}</td><td>{r['budget']}</td><td>{r['total_pnl']:.2f}</td><td>{r['sharpe_ratio']:.3f}</td><td>{pct(r['max_drawdown_pct'])}</td><td>{r['pass_rate']:.2f}</td><td>{r['hard_fail_windows']}</td></tr>"
+        f"<tr><td>{r['strategy']}</td><td>{r['budget']}</td><td>{r['total_pnl']:.2f}</td><td>{r['sortino_ratio']:.3f}</td><td>{r['calmar_ratio']:.3f}</td><td>{pct(r['cvar_95_pct'])}</td><td>{pct(r['max_drawdown_pct'])}</td><td>{r['pass_rate']:.2f}</td></tr>"
         for r in quant_top
     )
 
@@ -52,7 +52,7 @@ def build_html(payload: dict[str, Any]) -> str:
 <head>
   <meta charset=\"utf-8\" />
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
-  <title>MarketMakerL MVP Dashboard</title>
+  <title>MarketMakeRL MVP Dashboard</title>
   <style>
     :root {{
       --bg: #f6f8fb;
@@ -65,7 +65,7 @@ def build_html(payload: dict[str, Any]) -> str:
       --warn: #b26a00;
     }}
     body {{ margin: 0; font-family: "IBM Plex Sans", "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }}
-    .wrap {{ max-width: 1180px; margin: 0 auto; padding: 24px; }}
+    .wrap {{ max-width: 1220px; margin: 0 auto; padding: 24px; }}
     .hero {{ background: linear-gradient(120deg, #dcecff, #f5fbff); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }}
     h1 {{ margin: 0 0 6px; font-size: 28px; }}
     .sub {{ color: var(--muted); margin: 0; }}
@@ -88,7 +88,7 @@ def build_html(payload: dict[str, Any]) -> str:
 <body>
   <div class=\"wrap\">
     <div class=\"hero\">
-      <h1>MarketMakerL MVP: Stakeholder Analytics Dashboard</h1>
+      <h1>MarketMakeRL MVP: Stakeholder Analytics Dashboard</h1>
       <p class=\"sub\">Paper-only quant market-making platform with strict risk gates and live-ready operational discipline.</p>
       <p class=\"small\">Generated: {payload['generated_utc']}</p>
       <div class=\"grid\">
@@ -96,8 +96,10 @@ def build_html(payload: dict[str, Any]) -> str:
         <div class=\"card\"><div class=\"k\">Walk-Forward Gate</div><div class=\"v good\">{c['walk_forward_pass']}</div></div>
         <div class=\"card\"><div class=\"k\">Campaign Mean PnL</div><div class=\"v\">{c['campaign_mean_pnl']:.2f}</div></div>
         <div class=\"card\"><div class=\"k\">Campaign Mean Sharpe</div><div class=\"v\">{c['campaign_mean_sharpe']:.3f}</div></div>
-        <div class=\"card\"><div class=\"k\">Quant Recommended Strategy</div><div class=\"v\">{c['quant_strategy']}</div></div>
-        <div class=\"card\"><div class=\"k\">Recommended Drawdown</div><div class=\"v\">{pct(c['quant_dd_pct'])}</div></div>
+        <div class=\"card\"><div class=\"k\">Recommended Strategy</div><div class=\"v\">{c['quant_strategy']}</div></div>
+        <div class=\"card\"><div class=\"k\">Robustness Score</div><div class=\"v\">{c['robustness_score']:.3f}</div></div>
+        <div class=\"card\"><div class=\"k\">Sortino Ratio</div><div class=\"v\">{c['sortino_ratio']:.3f}</div></div>
+        <div class=\"card\"><div class=\"k\">CVaR 95%</div><div class=\"v warn\">{pct(c['cvar_95_pct'])}</div></div>
       </div>
     </div>
 
@@ -109,10 +111,10 @@ def build_html(payload: dict[str, Any]) -> str:
     <div class=\"section\">
       <h2>Strategies Explored: Robustness Ranking</h2>
       <table>
-        <thead><tr><th>Strategy</th><th>Budget</th><th>Total PnL</th><th>Sharpe</th><th>Max DD %</th><th>Pass Rate</th><th>Hard Fail Windows</th></tr></thead>
+        <thead><tr><th>Strategy</th><th>Budget</th><th>Total PnL</th><th>Sortino</th><th>Calmar</th><th>CVaR95</th><th>Max DD %</th><th>Pass Rate</th></tr></thead>
         <tbody>{rows}</tbody>
       </table>
-      <p class=\"small\">Top table is from latest quant experiments artifact.</p>
+      <p class=\"small\">Top table is from latest quant experiments artifact with expanded stress and tail-risk metrics.</p>
     </div>
 
     <div class=\"section\">
@@ -177,7 +179,6 @@ def main() -> int:
     overall_status = "READY FOR MVP SHOWCASE" if (walk_pass and campaign_mean_pnl > 0 and weekly.get("status") == "pass") else "NEEDS TUNING"
 
     recommendation = quant.get("recommendation", {})
-
     explored = analysis.get("strategy_format_summary", [])
 
     payload = {
@@ -188,7 +189,9 @@ def main() -> int:
             "campaign_mean_pnl": campaign_mean_pnl,
             "campaign_mean_sharpe": campaign_mean_sharpe,
             "quant_strategy": safe(recommendation.get("strategy"), "n/a"),
-            "quant_dd_pct": float(recommendation.get("max_drawdown_pct", 0.0)),
+            "robustness_score": float(recommendation.get("robustness_score", 0.0)),
+            "sortino_ratio": float(recommendation.get("sortino_ratio", 0.0)),
+            "cvar_95_pct": float(recommendation.get("cvar_95_pct", 0.0)),
         },
         "quant_top": quant.get("top_10", [])[:8],
         "explored_strategies": explored,
@@ -196,13 +199,13 @@ def main() -> int:
             "Docker-first orchestration with repeatable reliability gates",
             "Paper-only realtime quoting with public market data (no API keys)",
             "Backtest + walk-forward risk gating with strict drawdown controls",
-            "Quant strategy laboratory with robustness ranking and recommendation",
+            "Quant strategy laboratory with robust risk metrics (Sortino, Calmar, CVaR, Ulcer)",
             "Multisymbol paper shadow operation for rollout rehearsal",
             "Operational cadence: daily smoke, weekly reliability report, failure triage",
         ],
         "strategic_profitability_path": [
-            "Exploit regime-adaptive profiles: keep trend-shield as primary and inventory-tight as backup",
-            "Allocate capital by robustness score and drawdown efficiency, not by raw PnL",
+            "Prefer regime-adaptive profiles with high Sortino and low CVaR, not raw PnL alone",
+            "Allocate capital by robustness score and tail-risk efficiency",
             "Run weekly rolling re-optimization and replace profile only when strict gates remain green",
             "Improve execution quality (fill/slippage calibration) before increasing strategy aggressiveness",
             "Scale symbols gradually via shadow paper expansion, then promote only stable symbols",

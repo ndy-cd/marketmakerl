@@ -1,6 +1,6 @@
 # Project Guide
 
-Canonical technical document for the MarketMakerL MVP.
+Canonical technical document for the MarketMakeRL MVP.
 
 ## 1) What This MVP Is
 
@@ -85,13 +85,14 @@ make campaign N=10
 make research-budgets EXCHANGE=binance SYMBOL=BTC/USDT
 make walk-forward EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30
 make daily-smoke EXCHANGE=binance SYMBOL=BTC/USDT ITERATIONS=2 POLL_SECONDS=1
-make quant-experiments EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30
+make quant-experiments EXCHANGE=binance SYMBOL=BTC/USDT DAYS=60 WINDOW_DAYS=7 MAX_WINDOWS=6 BUDGETS=5000,10000,15000 VARIANTS=conservative,balanced,adaptive SEEDS=42,99
 ```
 
 Research gate checks:
 - Positive PnL.
-- Positive Sharpe.
+- Positive Sharpe and positive Sortino.
 - `max_drawdown_pct <= 0.40`.
+- Tail-risk control: `cvar_95_pct` below configured threshold.
 - Walk-forward pass rate above configured threshold with no hard drawdown breaches.
 
 ## 7) Current MVP Readiness

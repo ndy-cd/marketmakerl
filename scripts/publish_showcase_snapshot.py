@@ -3,9 +3,10 @@ import glob
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
 
 
-def latest(pattern: str) -> str | None:
+def latest(pattern: str) -> Optional[str]:
     files = sorted(glob.glob(pattern))
     return files[-1] if files else None
 
@@ -33,7 +34,7 @@ def main() -> int:
     weekly = json.loads(Path(weekly_json).read_text(encoding="utf-8")) if weekly_json else {}
     rec = quant.get("recommendation", {})
 
-    md = f"""# Stakeholder Showcase Snapshot
+    md = f"""# Stakeholder Showcase Snapshot (MarketMakeRL)
 
 Generated: {datetime.now(timezone.utc).isoformat()}
 
@@ -47,8 +48,9 @@ Generated: {datetime.now(timezone.utc).isoformat()}
 - Weekly reliability status: `{weekly.get('status', 'n/a')}`
 - Recommended strategy: `{rec.get('strategy', 'n/a')}`
 - Recommended budget: `{rec.get('budget', 'n/a')}`
-- Recommended Sharpe: `{rec.get('sharpe_ratio', 'n/a')}`
-- Recommended Max Drawdown %: `{rec.get('max_drawdown_pct', 'n/a')}`
+- Recommended robustness score: `{rec.get('robustness_score', 'n/a')}`
+- Recommended Sortino ratio: `{rec.get('sortino_ratio', 'n/a')}`
+- Recommended CVaR95 %: `{rec.get('cvar_95_pct', 'n/a')}`
 
 ## Source Artifacts
 

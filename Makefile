@@ -14,16 +14,23 @@ TRADES_LIMIT ?= 200
 OUTPUT_DIR ?= data/real
 DAYS ?= 30
 BATCH_LIMIT ?= 1000
+WINDOW_DAYS ?= 7
+MAX_WINDOWS ?= 6
 MAX_COMBINATIONS ?= 12
 ITERATIONS ?= 20
 POLL_SECONDS ?= 5
 SPREAD_CONSTRAINT ?= 0.001
 SYMBOLS ?= BTC/USDT,ETH/USDT
+VARIANTS ?= conservative,balanced,adaptive
+SEEDS ?= 42,99
+BUDGETS ?= 5000,10000,15000
 SERVER ?=
 SERVER_DIR ?= /opt/marketmakerl
 PAPER_ONLY ?= 1
+DASHBOARD_PORT ?= 8000
+DASHBOARD_FILE ?= docs/showcase/stakeholder_dashboard.html
 
-.PHONY: help build run run-backtest run-live test test-unit test-integration validate live-guard compose-config campaign real-data-fetch analyze-last-month research-budgets walk-forward mvp-launch realtime-paper realtime-live daily-smoke data-freshness risk-calibration weekly-report quant-experiments paper-multisymbol realization-step stakeholder-dashboard consistency-check publish-showcase deploy-server
+.PHONY: help build run run-backtest run-live test test-unit test-integration validate live-guard compose-config campaign real-data-fetch analyze-last-month research-budgets walk-forward mvp-launch realtime-paper realtime-live daily-smoke data-freshness risk-calibration weekly-report quant-experiments paper-multisymbol realization-step stakeholder-dashboard consistency-check publish-showcase dashboard-local dashboard-open dashboard-serve dashboard-locoal deploy-server
 
 help:
 	@echo "Targets:"
@@ -50,12 +57,15 @@ help:
 	@echo "  make data-freshness     - Verify public market-data freshness and schema health"
 	@echo "  make risk-calibration   - Run risk calibration scenario sweep"
 	@echo "  make weekly-report      - Build weekly reliability summary from latest artifacts"
-	@echo "  make quant-experiments  - Run quant strategy experiments with robustness ranking"
+	@echo "  make quant-experiments  - Run quant strategy experiments with robust risk stats"
 	@echo "  make paper-multisymbol  - Run paper quote loop for symbols in SYMBOLS"
 	@echo "  make realization-step   - Quant experiments + weekly report + multisymbol paper run"
 	@echo "  make stakeholder-dashboard - Build stakeholder analytics dashboard from latest artifacts"
 	@echo "  make consistency-check   - PM product consistency check (docs/commands/contracts)"
 	@echo "  make publish-showcase    - Publish latest dashboard snapshot into docs/showcase"
+	@echo "  make dashboard-local     - Build + publish dashboard snapshot for local demo"
+	@echo "  make dashboard-open      - Open docs/showcase/stakeholder_dashboard.html"
+	@echo "  make dashboard-serve     - Serve dashboard on http://localhost:$(DASHBOARD_PORT)"
 	@echo "  make deploy-server SERVER=user@host [SERVER_DIR=/opt/marketmakerl]"
 	@echo "  make compose-config    - Validate compose config"
 
@@ -143,7 +153,7 @@ weekly-report:
 	$(COMPOSE) run --rm agents python3 scripts/weekly_reliability_report.py
 
 quant-experiments:
-	$(COMPOSE) run --rm agents python3 scripts/quant_strategy_experiments.py --exchange $(EXCHANGE) --symbol $(SYMBOL) --timeframe 15m --days $(DAYS) --batch-limit $(BATCH_LIMIT) --window-days 5 --budgets 5000,10000
+	$(COMPOSE) run --rm agents python3 scripts/quant_strategy_experiments.py --exchange $(EXCHANGE) --symbol $(SYMBOL) --timeframe 15m --days $(DAYS) --batch-limit $(BATCH_LIMIT) --window-days $(WINDOW_DAYS) --max-windows $(MAX_WINDOWS) --budgets $(BUDGETS) --variants $(VARIANTS) --seeds $(SEEDS)
 
 paper-multisymbol:
 	@for sym in $$(echo "$(SYMBOLS)" | tr ',' ' '); do \
@@ -164,6 +174,26 @@ consistency-check:
 
 publish-showcase:
 	$(COMPOSE) run --rm agents python3 scripts/publish_showcase_snapshot.py
+
+dashboard-local: stakeholder-dashboard publish-showcase
+
+dashboard-open: dashboard-local
+	@if [ ! -f "$(DASHBOARD_FILE)" ]; then echo "Dashboard file not found: $(DASHBOARD_FILE)"; exit 1; fi
+	@if command -v open >/dev/null 2>&1; then \
+		open "$(DASHBOARD_FILE)"; \
+	elif command -v xdg-open >/dev/null 2>&1; then \
+		xdg-open "$(DASHBOARD_FILE)"; \
+	else \
+		echo "Open this file manually: $(DASHBOARD_FILE)"; \
+	fi
+
+dashboard-serve: dashboard-local
+	@if [ ! -f "$(DASHBOARD_FILE)" ]; then echo "Dashboard file not found: $(DASHBOARD_FILE)"; exit 1; fi
+	@echo "Serving dashboard on http://localhost:$(DASHBOARD_PORT)/$(DASHBOARD_FILE)"
+	python3 -m http.server $(DASHBOARD_PORT)
+
+# Compatibility alias for common typo.
+dashboard-locoal: dashboard-local
 
 deploy-server:
 	@test -n "$(SERVER)" || (echo "SERVER is required, e.g. make deploy-server SERVER=user@host" && exit 1)

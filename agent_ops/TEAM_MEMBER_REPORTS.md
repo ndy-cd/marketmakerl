@@ -2,6 +2,86 @@
 
 Report date: `2026-02-13`
 
+## Round 2 Review (Market Entry Prep)
+
+### A1 Runtime Orchestrator
+- Status: `Updated`
+- New work:
+  - validated expanded quant matrix run in Docker (`variants`, `seeds`, `budgets`, `windows`)
+  - validated dashboard regeneration and showcase publish flow
+- Weak spot:
+  - long quant runs require runtime budget controls
+- Next:
+  - add nightly profile (`reduced matrix`) vs weekly profile (`full matrix`)
+
+### A2 Data and Signal Engineer
+- Status: `Updated`
+- New work:
+  - confirmed real public kline data ingestion over longer windows for quant runs
+- Weak spot:
+  - single exchange dependency for now
+- Next:
+  - add optional secondary exchange source for cross-check
+
+### A3 Modeling Engineer
+- Status: `Updated`
+- New work:
+  - expanded strategy variants (`conservative`, `balanced`, `adaptive`)
+  - recommendation logic shifted to robust composite score (not drawdown-only)
+- Weak spot:
+  - non-MM families still untested in MVP scope
+- Next:
+  - add one low-frequency hedge variant for adverse regimes
+
+### A4 Backtest and Risk Engineer
+- Status: `Updated`
+- New work:
+  - added robust risk statistics: `Sortino`, `Calmar`, `CVaR95`, `Ulcer`, `Profit Factor`
+  - integrated these into gate pass conditions and ranking
+- Weak spot:
+  - CVaR is based on bar returns, not fill-level PnL decomposition
+- Next:
+  - add fill/slippage-aware tail loss decomposition
+
+### A5 QA and Integration Engineer
+- Status: `Updated`
+- New work:
+  - reran regression and integration tests after quant/dashboard changes
+- Weak spot:
+  - no dedicated tests yet for quant report schema evolution
+- Next:
+  - add schema assertions for quant report required keys
+
+### A6 Documentation Architect
+- Status: `Updated`
+- New work:
+  - renamed user-facing system references to `MarketMakeRL`
+  - updated docs for new robust metrics and expanded quant command
+- Weak spot:
+  - frequent artifact refresh can cause stale snapshot confusion
+- Next:
+  - document clear “artifact vs showcase snapshot” lifecycle in one short section
+
+### A7 Quant Researcher
+- Status: `Updated`
+- New work:
+  - increased experiment breadth (more budgets, variants, seeds, window stress)
+  - replaced drawdown-centric recommendation with robust-risk composite
+- Weak spot:
+  - still paper-only; no live slippage model validation
+- Next:
+  - run rolling monthly comparison and drift diagnostics on selected profile
+
+### A8 Project Manager
+- Status: `Updated`
+- New work:
+  - re-ran full team review requirement and synchronized deliverables
+  - confirmed stakeholder dashboard now highlights robust stats for go-to-market narrative
+- Weak spot:
+  - project needs clear “entry checklist” after paper stability streak
+- Next:
+  - create go/no-go checklist for API key onboarding stage
+
 ## A1 Runtime Orchestrator
 
 - Status: `On Track`

@@ -47,11 +47,14 @@ make mvp-launch EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30
 make daily-smoke EXCHANGE=binance SYMBOL=BTC/USDT ITERATIONS=2 POLL_SECONDS=1
 make data-freshness EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m
 make weekly-report
-make quant-experiments EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30
+make quant-experiments EXCHANGE=binance SYMBOL=BTC/USDT DAYS=60 WINDOW_DAYS=7 MAX_WINDOWS=6 BUDGETS=5000,10000,15000 VARIANTS=conservative,balanced,adaptive SEEDS=42,99
 make realization-step EXCHANGE=binance SYMBOL=BTC/USDT SYMBOLS=BTC/USDT,ETH/USDT
 make stakeholder-dashboard
 make consistency-check
 make publish-showcase
+make dashboard-open
+# or:
+make dashboard-serve DASHBOARD_PORT=8000
 ```
 
 Stakeholder dashboard output:
@@ -63,6 +66,7 @@ Stakeholder dashboard output:
 
 - Paper/simulation only for MVP.
 - Quant failure rule: if drawdown exceeds `40%` of initial budget, run is a fail.
+- Quant recommendation prioritizes robust metrics (Sortino, Calmar, CVaR95, Ulcer) over raw drawdown-only ranking.
 - `PAPER_ONLY=1` blocks:
   - `make run-live`
   - `make realtime-live`
