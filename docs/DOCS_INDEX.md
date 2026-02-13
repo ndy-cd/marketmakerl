@@ -1,13 +1,22 @@
 # Documentation Index
 
-Куда смотреть:
+Start here:
 
-1. Быстрый старт: `README.md`
-2. Главный техдок: `docs/PROJECT_GUIDE.md`
-3. Для стейкхолдеров: `docs/STAKEHOLDER_MVP_BRIEF.md`
-4. Деплой: `docs/DEPLOYMENT_GUIDE.md`
+1. `README.md` - quick start and safety policy.
+2. `docs/PROJECT_GUIDE.md` - canonical technical guide.
+3. `docs/DEPLOYMENT_GUIDE.md` - local/server deployment.
+4. `docs/test_strategy.md` - test and validation strategy.
 
-Дополнительно:
-- План MVP: `docs/MVP_EXECUTION_PLAN.md`
-- Чеклист signoff: `docs/MVP_SIGNOFF_CHECKLIST.md`
-- Краткий каталог фич: `docs/FEATURE_CATALOG.md`
+MVP management:
+
+1. `docs/MVP_EXECUTION_PLAN.md` - delivery plan and gates.
+2. `docs/MVP_SIGNOFF_CHECKLIST.md` - release sign-off checklist.
+3. `docs/STAKEHOLDER_MVP_BRIEF.md` - stakeholder-facing summary.
+4. `agent_ops/TEAM_REVIEW_ACTION_PLAN.md` - team strengths/weaknesses and action plan.
+
+Supporting references:
+
+1. `docs/FEATURE_CATALOG.md` - feature inventory.
+2. `docs/IMPLEMENTED_CHANGES.md` - implemented worklog.
+3. `docs/REAL_DATA_DEVELOPMENT_PLAN.md` - path from paper to live-ready.
+4. `agent_ops/WORKBOARD.md` - team ownership/status board.

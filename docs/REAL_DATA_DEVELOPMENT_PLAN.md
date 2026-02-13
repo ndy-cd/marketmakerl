@@ -1,35 +1,36 @@
-# Real Data Development Plan
+# Real-Data Development Plan
 
-Краткий план развития real-data части.
+## Current Baseline
 
-## Текущий статус
+- Real market data ingestion from public exchange endpoints is available.
+- Paper real-time strategy loop is available.
+- Last-month quant research is available with budget tiers and format comparisons.
 
-- Public market data ingestion: `Implemented`
-- Realtime paper quote loop: `Implemented`
-- Quant gate по последнему месяцу: `Implemented`
-- Live onboarding: `Not allowed now` (paper-only policy)
+## Next Steps
 
-## Фазы
+1. Improve strategy economics:
+- reduce overtrading
+- improve fee-adjusted edge quality
+- stabilize drawdown behavior
 
-1. Data reliability
-- schema checks
-- dedup/order guarantees
+2. Strengthen execution realism:
+- better fill probability calibration
+- slippage/latency sensitivity tests
 
-2. Strategy economics
-- fee-aware logic
-- inventory/risk guard tuning
+3. Quant gate target:
+- positive PnL
+- positive Sharpe
+- max drawdown not worse than `40%` of budget
 
-3. Execution readiness
-- execution adapter + reconciliation
-- kill switch + risk limits
+4. Live-key onboarding prerequisites:
+- all gates green in repeated runs
+- operational runbooks complete
+- explicit approval to move from paper to live
 
-4. Live readiness gate
-- `readiness.ready_for_live_keys=true`
-- только после этого рассматривать API keys
-
-## Команды контроля
+## Control Commands
 
 ```bash
-make real-data-fetch EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m
-make analyze-last-month EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=15m DAYS=30 MAX_COMBINATIONS=24
+make real-data-fetch EXCHANGE=binance SYMBOL=BTC/USDT
+make research-budgets EXCHANGE=binance SYMBOL=BTC/USDT
+make realtime-paper EXCHANGE=binance SYMBOL=BTC/USDT
 ```

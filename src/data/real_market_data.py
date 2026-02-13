@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -44,12 +45,16 @@ class RealMarketDataClient:
         api_key: Optional[str] = None,
         api_secret: Optional[str] = None,
         timeout_ms: int = 10000,
+        market_type: str = "spot",
+        load_markets_retries: int = 3,
         exchange: Optional[Any] = None,
     ):
         self.exchange_id = exchange_id
         self.api_key = api_key
         self.api_secret = api_secret
         self.timeout_ms = timeout_ms
+        self.market_type = market_type
+        self.load_markets_retries = max(1, int(load_markets_retries))
         self._exchange = exchange or self._build_exchange()
 
     def _build_exchange(self) -> Any:
@@ -64,9 +69,32 @@ class RealMarketDataClient:
                 "secret": self.api_secret,
                 "enableRateLimit": True,
                 "timeout": self.timeout_ms,
+                "options": {
+                    "defaultType": self.market_type,
+                    "fetchMarkets": {"types": [self.market_type]},
+                },
             }
         )
-        ex.load_markets()
+        last_error = None
+        for attempt in range(1, self.load_markets_retries + 1):
+            try:
+                ex.load_markets()
+                last_error = None
+                break
+            except Exception as err:
+                last_error = err
+                logger.warning(
+                    "load_markets failed for %s (type=%s), attempt %d/%d: %s",
+                    self.exchange_id,
+                    self.market_type,
+                    attempt,
+                    self.load_markets_retries,
+                    err,
+                )
+                if attempt < self.load_markets_retries:
+                    time.sleep(min(3.0, 0.5 * attempt))
+        if last_error is not None:
+            raise last_error
         return ex
 
     @property

@@ -1,36 +1,40 @@
 # Deployment Guide
 
-Короткий гайд по деплою paper realtime сервиса.
-
-## Перед деплоем
+## 1) Local Docker Deployment
 
 ```bash
+make build
 make validate
-make campaign N=10
-make analyze-last-month EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=15m DAYS=30 MAX_COMBINATIONS=24
 ```
 
-## Локальный smoke
+Run paper real-time service:
 
 ```bash
-make realtime-paper EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m ITERATIONS=20
+make realtime-paper EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m ITERATIONS=100 POLL_SECONDS=5
 ```
 
-## Деплой на сервер
+## 2) Server Deployment
 
 ```bash
 make deploy-server SERVER=user@host SERVER_DIR=/opt/marketmakerl
 ```
 
-## Управление сервисом
+After deploy, run on server:
 
 ```bash
-ssh user@host "cd /opt/marketmakerl && docker compose -f docker-compose.server.yml up -d realtime-strategy"
-ssh user@host "cd /opt/marketmakerl && docker compose -f docker-compose.server.yml logs -f realtime-strategy"
-ssh user@host "cd /opt/marketmakerl && docker compose -f docker-compose.server.yml stop realtime-strategy"
+cd /opt/marketmakerl
+make build
+make validate
+make realtime-paper EXCHANGE=binance SYMBOL=BTC/USDT
 ```
 
-## Политика
+## 3) Operations
 
-- Только paper режим.
-- `PAPER_ONLY=1` должен оставаться включенным.
+- Rebuild service image: `make build`
+- Full regression check: `make validate`
+- Quant/budget research: `make research-budgets EXCHANGE=binance SYMBOL=BTC/USDT`
+
+## 4) Policy
+
+- MVP is paper-only by default.
+- Keep `PAPER_ONLY=1` until quant gate passes.

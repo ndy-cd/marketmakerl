@@ -1,8 +1,7 @@
 # Completed Enhancements
 
-Историческая справка.
+Historical summary of completed work. For current status use:
 
-Актуальную информацию смотрите в:
+- `docs/IMPLEMENTED_CHANGES.md`
 - `docs/PROJECT_GUIDE.md`
-- `docs/MVP_EXECUTION_PLAN.md`
-- `docs/STAKEHOLDER_MVP_BRIEF.md`
+- `agent_ops/WORKBOARD.md`

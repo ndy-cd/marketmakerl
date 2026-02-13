@@ -22,7 +22,7 @@ SERVER ?=
 SERVER_DIR ?= /opt/marketmakerl
 PAPER_ONLY ?= 1
 
-.PHONY: help build run run-backtest run-live test test-unit test-integration validate live-guard compose-config campaign real-data-fetch analyze-last-month realtime-paper realtime-live deploy-server
+.PHONY: help build run run-backtest run-live test test-unit test-integration validate live-guard compose-config campaign real-data-fetch analyze-last-month research-budgets walk-forward mvp-launch realtime-paper realtime-live deploy-server
 
 help:
 	@echo "Targets:"
@@ -39,6 +39,9 @@ help:
 	@echo "  make campaign N=10     - Run N backtests and aggregate metrics"
 	@echo "  make real-data-fetch   - Fetch real market snapshot (klines/orderbook/trades)"
 	@echo "  make analyze-last-month - Run real-data strategy analysis and parameter sweep"
+	@echo "  make research-budgets   - Run budget/strategy-format research over last month"
+	@echo "  make walk-forward      - Run walk-forward stability gate on recent real data"
+	@echo "  make mvp-launch        - Full MVP readiness workflow (validate+campaign+research+walk-forward+paper)"
 	@echo "  make realtime-paper     - Run realtime quote strategy (public data, no keys)"
 	@echo "  make realtime-live      - Run realtime strategy with key guard"
 	@echo "                           disabled while PAPER_ONLY=1"
@@ -92,7 +95,20 @@ real-data-fetch:
 	$(COMPOSE) run --rm agents python3 scripts/fetch_real_market_data.py --exchange $(EXCHANGE) --symbol $(SYMBOL) --timeframe $(TIMEFRAME) --kline-limit $(KLINE_LIMIT) --order-book-limit $(ORDER_BOOK_LIMIT) --trades-limit $(TRADES_LIMIT) --output-dir $(OUTPUT_DIR)
 
 analyze-last-month:
-	$(COMPOSE) run --rm agents python3 scripts/analyze_last_month_strategy.py --exchange $(EXCHANGE) --symbol $(SYMBOL) --timeframe $(TIMEFRAME) --days $(DAYS) --batch-limit $(BATCH_LIMIT) --max-combinations $(MAX_COMBINATIONS)
+	$(COMPOSE) run --rm agents python3 scripts/analyze_last_month_strategy.py --exchange $(EXCHANGE) --symbol $(SYMBOL) --timeframe $(TIMEFRAME) --days $(DAYS) --batch-limit $(BATCH_LIMIT) --initial-capital 10000 --budget-tiers 2500,5000,10000 --drawdown-fail-pct 0.40 --max-combinations $(MAX_COMBINATIONS)
+
+research-budgets:
+	$(MAKE) analyze-last-month TIMEFRAME=15m DAYS=30 MAX_COMBINATIONS=24
+
+walk-forward:
+	$(COMPOSE) run --rm agents python3 scripts/walk_forward_gate.py --exchange $(EXCHANGE) --symbol $(SYMBOL) --timeframe 15m --days $(DAYS)
+
+mvp-launch:
+	$(MAKE) validate
+	$(MAKE) campaign N=10
+	$(MAKE) research-budgets EXCHANGE=$(EXCHANGE) SYMBOL=$(SYMBOL)
+	$(MAKE) walk-forward EXCHANGE=$(EXCHANGE) SYMBOL=$(SYMBOL) DAYS=$(DAYS)
+	$(MAKE) realtime-paper EXCHANGE=$(EXCHANGE) SYMBOL=$(SYMBOL) TIMEFRAME=1m ITERATIONS=20 POLL_SECONDS=2
 
 realtime-paper:
 	$(COMPOSE) run --rm -e PAPER_ONLY=$(PAPER_ONLY) agents python3 scripts/run_realtime_strategy.py --exchange $(EXCHANGE) --symbol $(SYMBOL) --timeframe $(TIMEFRAME) --iterations $(ITERATIONS) --poll-seconds $(POLL_SECONDS) --spread-constraint $(SPREAD_CONSTRAINT)

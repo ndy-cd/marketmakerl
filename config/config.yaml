@@ -32,13 +32,26 @@ agents:
     role: execution
     params:
       n_periods: 500
-      risk_aversion: 1.0
+      backtest_mode: standard
+      risk_aversion: 1.8
+      time_horizon: 0.5
       volatility: 0.01
       initial_capital: 10000
-      transaction_fee: 0.001
-      max_inventory: 20
+      transaction_fee: 0.0002
+      spread_constraint_bps: 35.0
+      min_edge_bps: 2.0
+      cooldown_steps: 3
+      inventory_soft_limit_ratio: 0.5
+      target_volatility: 0.0035
+      vol_spread_scale: 1.3
+      soft_drawdown_risk_pct: 0.17
+      hard_drawdown_stop_pct: 0.4
+      adverse_return_bps: 14.0
+      risk_off_inventory_scale: 0.5
+      random_seed: 42
+      max_inventory: 5
       volatility_window: 20
-      use_signals: true
+      use_signals: false
 
   - name: risk_agent_1
     role: risk

@@ -204,6 +204,7 @@ class AgentRuntime:
         )
         model = AvellanedaStoikovModel(
             risk_aversion=float(spec.params.get("risk_aversion", 1.0)),
+            time_horizon=float(spec.params.get("time_horizon", 1.0)),
             volatility=float(spec.params.get("volatility", 0.01)),
         )
         try:
@@ -213,13 +214,41 @@ class AgentRuntime:
                 market_data=frame,
                 initial_capital=float(spec.params.get("initial_capital", 10000.0)),
                 transaction_fee=float(spec.params.get("transaction_fee", 0.001)),
+                random_seed=int(spec.params.get("random_seed", 42)),
+                min_edge_bps=float(spec.params.get("min_edge_bps", 0.0)),
+                cooldown_steps=int(spec.params.get("cooldown_steps", 1)),
             )
-            result = engine.run_backtest_enhanced(
-                model=model,
-                max_inventory=int(spec.params.get("max_inventory", 20)),
-                volatility_window=int(spec.params.get("volatility_window", 20)),
-                use_signals=bool(spec.params.get("use_signals", True)),
-            )
+            execution_params = {
+                "spread_constraint": spec.params.get("spread_constraint"),
+                "spread_constraint_bps": spec.params.get("spread_constraint_bps"),
+                "min_edge_bps": float(spec.params.get("min_edge_bps", 0.0)),
+                "cooldown_steps": int(spec.params.get("cooldown_steps", 1)),
+                "inventory_soft_limit_ratio": float(spec.params.get("inventory_soft_limit_ratio", 0.8)),
+                "target_volatility": float(spec.params.get("target_volatility", 0.0)),
+                "vol_spread_scale": float(spec.params.get("vol_spread_scale", 0.0)),
+                "soft_drawdown_risk_pct": float(spec.params.get("soft_drawdown_risk_pct", 1.0)),
+                "hard_drawdown_stop_pct": float(spec.params.get("hard_drawdown_stop_pct", 1.0)),
+                "adverse_return_bps": float(spec.params.get("adverse_return_bps", 0.0)),
+                "risk_off_inventory_scale": float(spec.params.get("risk_off_inventory_scale", 0.5)),
+            }
+            execution_params = {k: v for k, v in execution_params.items() if v is not None}
+
+            backtest_mode = str(spec.params.get("backtest_mode", "enhanced")).lower()
+            if backtest_mode == "standard":
+                result = engine.run_backtest(
+                    model=model,
+                    params=execution_params,
+                    max_inventory=int(spec.params.get("max_inventory", 20)),
+                    volatility_window=int(spec.params.get("volatility_window", 20)),
+                )
+            else:
+                result = engine.run_backtest_enhanced(
+                    model=model,
+                    params=execution_params,
+                    max_inventory=int(spec.params.get("max_inventory", 20)),
+                    volatility_window=int(spec.params.get("volatility_window", 20)),
+                    use_signals=bool(spec.params.get("use_signals", True)),
+                )
             metrics = result["metrics"]
             metrics["execution_mode"] = "backtest_engine"
         except ModuleNotFoundError:

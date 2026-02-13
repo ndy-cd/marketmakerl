@@ -4,19 +4,21 @@ Source reviewed: `/Users/nody/codexpro/deep-research-report.md`
 
 ## Incorporated
 
-- Единый config-driven runtime.
-- Paper-first policy with hard live block.
-- A1-A8 ownership model и общий workboard.
-- Gate-driven workflow через Make-команды.
+1. Unified config-driven runtime.
+2. Paper-first policy with hard live lock.
+3. A1-A8 ownership model with shared workboard.
+4. Gate-driven workflow through Make targets.
+5. Drawdown failure threshold standardized at `40%` of budget.
 
-## Open assumptions
+## Open Assumptions
 
-- Live execution adapter еще не внедрен.
-- Risk limits и kill-switch логика не финализированы.
-- Стратегия пока не проходит экономический quant gate.
+1. Live execution adapter remains intentionally disabled in MVP.
+2. Additional risk controls (kill-switch and richer limits) are still being hardened.
+3. Strategy economics are not yet consistently positive under current market regimes.
 
-## Active sequence
+## Active Sequence
 
-1. A3/A4: execution+risk+fee-aware redesign.
-2. A7: re-run quant gate до `ready_for_live_keys=true`.
-3. A5/A6: regression checks и docs sync.
+1. A3/A4: continue execution + risk + fee-aware improvements.
+2. A7: rerun quant gate until consistent pass on risk criteria.
+3. A5/A6: maintain regression and documentation alignment.
+4. A8: keep release gating and stakeholder tracking current.

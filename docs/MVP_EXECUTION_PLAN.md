@@ -1,26 +1,35 @@
 # MVP Execution Plan
 
-План MVP в одном месте.
+## Goal
 
-## Статус фаз
+Deliver a stable, stakeholder-ready paper-trading MVP with explicit risk gates.
 
-1. Runtime + tests: `Done`
-2. Real data ingestion: `Done`
-3. Backtest campaign: `Done`
-4. Quant gate: `Done` (но verdict пока negative)
-5. Realtime paper deployment: `Done`
-6. Paper-only lock: `Done`
-7. Execution/risk/fee-aware redesign: `In Progress`
+## Phase Status
 
-## Release gate (обязательный)
+1. Runtime and Docker workflow: `Done`
+2. Public data ingestion (no keys): `Done`
+3. Strategy/backtest baseline: `Done`
+4. Quant research gate: `Done (paper launch preset selected)`
+5. Documentation and stakeholder package: `Done`
 
-- `make validate`
-- `make campaign N=10`
-- `make analyze-last-month ...`
-- в отчете: `readiness.ready_for_live_keys=true`
+## Hard Gates
 
-## Текущее решение
+```bash
+make validate
+make campaign N=10
+make research-budgets EXCHANGE=binance SYMBOL=BTC/USDT
+```
 
-- Сейчас `ready_for_live_keys=false`.
-- Работаем только в paper режиме (`PAPER_ONLY=1`).
-- Статус по агентам: `agent_ops/WORKBOARD.md`
+Release gate criteria:
+
+1. Pipeline commands succeed.
+2. Strategy report includes readiness checks.
+3. Drawdown rule enforced: failure if drawdown exceeds `40%` of initial budget.
+4. `PAPER_ONLY=1` remains enabled until quant gate passes.
+5. Walk-forward gate passes (`make walk-forward ...`).
+
+## Current Decision
+
+- Continue paper-only operation.
+- Use stable runtime preset and `make mvp-launch` workflow for paper rollout.
+- Do not onboard exchange API keys until repeated paper cycles remain stable.

@@ -1,25 +1,19 @@
 # Stakeholder MVP Brief
 
-Коротко для стейкхолдеров.
+## What Works Today
 
-## Где мы сейчас
+1. Dockerized runtime and validation workflow.
+2. Public real-market data ingestion (no API keys required).
+3. Backtesting and repeated campaign execution.
+4. Real-time paper quote loop.
+5. Safety lock that blocks live trading.
 
-- MVP стабильно работает в Docker.
-- Realtime работает в paper режиме.
-- Live intentionally disabled (`PAPER_ONLY=1`).
+## Risk Position
 
-## Что доказано
+- Quant gate is strict: run fails if drawdown exceeds `40%` of budget.
+- API keys are intentionally deferred until quant readiness is consistently positive.
 
-- Reliability: `make validate`
-- Backtest stability: `make campaign N=10`
-- Quant gate: `make analyze-last-month ...`
-- Realtime stream: `make realtime-paper ...`
+## Decision
 
-## Ключевой вывод
-
-- В текущем отчете `ready_for_live_keys=false`.
-- Значит API keys не подключаем, продолжаем paper-only.
-
-## Следующий шаг
-
-- execution/risk/fee-aware redesign до положительного quant gate.
+- MVP is operational as a paper-trading platform.
+- Economic optimization is still in progress before live activation.

@@ -1,39 +1,20 @@
 # Feature Catalog
 
-Краткий каталог фич проекта.
-Подробности и запуск: `docs/PROJECT_GUIDE.md`.
+## Implemented
 
-## Runtime
+1. Docker runtime and Make-based orchestration.
+2. Backtest + enhanced backtest with risk controls.
+3. Public real-market data ingestion:
+- klines
+- order book
+- trades
+4. Last-month strategy research with budget tiers and strategy formats.
+5. Quant readiness verdict with hard drawdown threshold.
+6. Realtime paper quote loop.
+7. Safety lock for live commands (`PAPER_ONLY=1`).
+8. Unit + integration + campaign workflows.
 
-- Docker runtime и Make-команды: `Implemented`
-- Multi-agent orchestration (`data/ml/execution/risk`): `Implemented`
-- Paper-only lock (`PAPER_ONLY=1`): `Implemented`
+## In Progress
 
-## Data
-
-- Simulation data pipeline: `Implemented`
-- Public CEX snapshot collection: `Implemented`
-- Realtime quote loop on public data: `Implemented`
-- Onchain handler: `Placeholder`
-
-## Models
-
-- Avellaneda-Stoikov: `Implemented`
-- RL-enhanced (gymnasium): `Implemented`
-
-## Backtesting
-
-- Standard + enhanced backtest: `Implemented`
-- Campaign run (`N=10`): `Implemented`
-- Last-month quant gate: `Implemented`
-
-## Quality Gates
-
-- `make validate`: `Implemented`
-- `make test-unit`: `Implemented`
-- `make test-integration`: `Implemented`
-
-## Deployment
-
-- Paper realtime service via `docker-compose.server.yml`: `Implemented`
-- Remote deploy script: `Implemented`
+1. Improve economic performance stability under real-data backtests.
+2. Upgrade execution realism and strategy adaptation for better risk-adjusted returns.

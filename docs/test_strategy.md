@@ -1,18 +1,25 @@
-# Test Strategy (No API Keys)
+# Test Strategy
 
-Короткая стратегия тестов MVP.
-
-## Команды
+## Mandatory Commands
 
 ```bash
 make validate
 make campaign N=10
-make analyze-last-month EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=15m DAYS=30 MAX_COMBINATIONS=24
+make research-budgets EXCHANGE=binance SYMBOL=BTC/USDT
+make walk-forward EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30
 make realtime-paper EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m ITERATIONS=20
 ```
 
-## Критерии
+## What We Verify
 
-- Команды завершаются без ошибок
-- Артефакты генерируются в `artifacts/`
-- Live команды остаются заблокированы при `PAPER_ONLY=1`
+1. Runtime reliability in Docker.
+2. Regression safety for core modules.
+3. Artifact generation in `artifacts/`.
+4. Real-data flow with no API keys.
+5. Strategy risk gate with drawdown failure threshold (`40%`).
+
+## Pass Criteria
+
+- Commands complete without errors.
+- Expected artifacts are generated.
+- Live commands remain blocked while `PAPER_ONLY=1`.

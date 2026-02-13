@@ -1,113 +1,105 @@
 # Project Guide
 
-Канонический технический документ проекта.
+Canonical technical document for the MarketMakerL MVP.
 
-## 1) Что это за MVP
+## 1) What This MVP Is
 
-- Docker-first система для market making в режиме `backtest` и `paper`.
-- Поддерживает:
-  - симуляцию и бэктесты
-  - публичные market-data источники (без API ключей)
-  - paper realtime quote loop
-- Live-режим заблокирован по политике: `PAPER_ONLY=1`.
+- Docker-first market making platform.
+- Modes supported today:
+  - `backtest` (historical simulation)
+  - `paper` (real-time quoting with no order placement)
+- Live order placement is blocked by policy (`PAPER_ONLY=1`).
 
-## 2) Быстрый запуск
+## 2) Quick Run
 
 ```bash
+make build
 make validate
 make campaign N=10
-make analyze-last-month EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=15m DAYS=30 MAX_COMBINATIONS=24
+make research-budgets EXCHANGE=binance SYMBOL=BTC/USDT
 make realtime-paper EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m ITERATIONS=20
 ```
 
-## 3) Политика безопасности
+## 3) Safety Policy
 
-- Разрешено: `backtest`, `paper`.
-- Ограничено: `live`.
-- При `PAPER_ONLY=1` заблокированы:
+- Allowed: simulation and paper execution.
+- Blocked while `PAPER_ONLY=1`:
   - `make run-live`
   - `make realtime-live`
+- Any strategy run with max drawdown worse than `40%` of initial budget is a failure.
 
-## 4) Архитектура (кратко)
+## 4) Architecture
 
-1. Runtime orchestration
-- `scripts/run_agents.py`
-- `src/agents/base.py`
-- `config/config.yaml`
+1. Data layer:
+- `src/data/data_processor.py` for deterministic synthetic data.
+- `src/data/real_market_data.py` for public CEX data (no keys required).
 
-2. Data
-- `src/data/data_processor.py`
-- `src/data/real_market_data.py`
+2. Strategy layer:
+- `src/models/avellaneda_stoikov.py` baseline market-making model.
+- `src/models/rl_enhanced_model.py` enhanced model wrapper for research.
+
+3. Execution and risk layer:
+- `src/backtesting/backtest_engine.py` with fee-aware edge filter, cooldown, soft inventory limits, and liquidation handling.
+- Stability overlays:
+  - volatility-targeted spread widening
+  - soft/hard drawdown circuit breakers
+  - adverse-move entry filter
+  - risk-off inventory scaling
+
+4. Runtime orchestration:
+- `scripts/run_agents.py`, `scripts/run_realtime_strategy.py`, `Makefile`, Docker Compose.
+
+5. Outputs:
+- All artifacts under `artifacts/`.
+
+## 5) Data Flows (Different Sources)
+
+1. Synthetic training/smoke flow:
+- `DataProcessor.simulate_market_data()`
+- backtest engine
+- metrics JSON artifacts.
+
+2. Public snapshot flow (no keys):
 - `scripts/fetch_real_market_data.py`
+- pulls `klines`, `order_book`, and `trades`
+- writes files to `data/real/`.
 
-3. Models
-- `src/models/avellaneda_stoikov.py`
-- `src/models/rl_enhanced_model.py`
+3. Last-month research flow (no keys):
+- `scripts/analyze_last_month_strategy.py`
+- fetches rolling historical klines from public endpoints
+- runs budget tiers + strategy formats
+- emits analysis JSON + CSV reports.
 
-4. Backtest / metrics
-- `src/backtesting/backtest_engine.py`
-- артефакты в `artifacts/`
-
-5. Realtime paper service
+4. Real-time paper flow (no keys):
 - `scripts/run_realtime_strategy.py`
-- `docker-compose.server.yml`
-- `scripts/deploy_server.sh`
+- polls exchange market data
+- generates quotes and logs stream to `artifacts/realtime/*.jsonl`.
 
-## 5) Поток данных
+## 6) Validation Gates
 
-1. Источник данных:
-- simulation (`data_processor`)
-- public CEX snapshots (`real_market_data`)
+Mandatory before any MVP milestone:
 
-2. Обработка:
-- сигналы и признаки (`src/utils/market_data.py`)
-
-3. Стратегия:
-- модель формирует bid/ask
-
-4. Исполнение:
-- backtest engine (или paper realtime loop)
-
-5. Артефакты:
-- `artifacts/*_metrics.json`
-- `artifacts/campaign_*/campaign_report.json`
-- `artifacts/last_month_analysis/*_analysis.json`
-- `artifacts/realtime/*.jsonl`
-
-## 6) Что проверяем перед любым релизом
-
-1. Надежность:
 ```bash
 make validate
-```
-
-2. Стабильность бэктеста:
-```bash
 make campaign N=10
+make research-budgets EXCHANGE=binance SYMBOL=BTC/USDT
+make walk-forward EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30
 ```
 
-3. Quant-gate за последний месяц:
-```bash
-make analyze-last-month EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=15m DAYS=30 MAX_COMBINATIONS=24
-```
+Research gate checks:
+- Positive PnL.
+- Positive Sharpe.
+- `max_drawdown_pct <= 0.40`.
+- Walk-forward pass rate above configured threshold with no hard drawdown breaches.
 
-Ключевой флаг в отчете:
-- `readiness.ready_for_live_keys`
+## 7) Current MVP Readiness
 
-## 7) Текущее состояние MVP
+- Platform reliability (Docker/test/runtime): operational.
+- Real data ingestion (public endpoints): operational.
+- Quant economics: currently needs further improvement before live keys.
+- Decision: continue in paper-only mode.
 
-- Технически работает гладко в paper/backtest режиме.
-- Realtime paper сервис развертывается и пишет поток котировок.
-- `ready_for_live_keys` пока `false` (стратегия экономически не готова к live).
+## 8) Team Roles
 
-## 8) Следующий этап (в работе)
-
-- execution adapter (submit/cancel/replace/reconcile)
-- hard risk guards (limits, stale-data guard, kill switch)
-- fee-aware quoting и снижение overtrading
-
-## 9) Навигация по документации
-
-- Карта документов: `docs/DOCS_INDEX.md`
-- Для stakeholders: `docs/STAKEHOLDER_MVP_BRIEF.md`
-- Для деплоя: `docs/DEPLOYMENT_GUIDE.md`
+- Ownership map and current status: `agent_ops/team.yaml` and `agent_ops/WORKBOARD.md`.
+- Includes Quant Researcher (`A7`) and Project Manager (`A8`) roles.

@@ -20,7 +20,16 @@ class BacktestEngine:
     the performance of market making algorithms.
     """
     
-    def __init__(self, market_data, initial_capital=10000.0, transaction_fee=0.001):
+    def __init__(
+        self,
+        market_data,
+        initial_capital=10000.0,
+        transaction_fee=0.001,
+        random_seed=42,
+        min_edge_bps=0.0,
+        cooldown_steps=1,
+        execution_sensitivity=120.0,
+    ):
         """
         Initialize the backtest engine
         
@@ -32,7 +41,87 @@ class BacktestEngine:
         self.market_data = market_data
         self.initial_capital = initial_capital
         self.transaction_fee = transaction_fee
+        self.random_seed = int(random_seed)
+        self.min_edge_bps = float(min_edge_bps)
+        self.cooldown_steps = int(max(0, cooldown_steps))
+        self.execution_sensitivity = float(max(1.0, execution_sensitivity))
+        self.rng = np.random.default_rng(self.random_seed)
         self.reset()
+
+    def _current_total_value(self, mid_price):
+        return float(self.capital + self._calculate_unrealized_pnl(mid_price))
+
+    def _normalize_return(self, row):
+        if "returns" not in row:
+            return 0.0
+        value = row["returns"]
+        if pd.isna(value):
+            return 0.0
+        return float(value)
+
+    def _apply_risk_overlays(
+        self,
+        row,
+        mid_price,
+        volatility,
+        peak_value,
+        spread_constraint,
+        spread_constraint_bps,
+        min_edge_bps,
+        soft_limit,
+        params,
+    ):
+        current_value = self._current_total_value(mid_price)
+        peak_value = max(float(peak_value), current_value)
+        drawdown_pct = (peak_value - current_value) / max(1e-9, peak_value)
+
+        hard_drawdown_stop_pct = float(params.get("hard_drawdown_stop_pct", 1.0)) if isinstance(params, dict) else 1.0
+        soft_drawdown_risk_pct = float(params.get("soft_drawdown_risk_pct", 1.0)) if isinstance(params, dict) else 1.0
+        target_volatility = float(params.get("target_volatility", 0.0)) if isinstance(params, dict) else 0.0
+        vol_spread_scale = float(params.get("vol_spread_scale", 0.0)) if isinstance(params, dict) else 0.0
+        risk_off_inventory_scale = float(params.get("risk_off_inventory_scale", 0.5)) if isinstance(params, dict) else 0.5
+
+        hard_drawdown_stop_pct = min(max(hard_drawdown_stop_pct, 0.0), 1.0)
+        soft_drawdown_risk_pct = min(max(soft_drawdown_risk_pct, 0.0), 1.0)
+        risk_off_inventory_scale = min(max(risk_off_inventory_scale, 0.1), 1.0)
+
+        hard_stop_triggered = bool(drawdown_pct >= hard_drawdown_stop_pct)
+        risk_off = bool(drawdown_pct >= soft_drawdown_risk_pct)
+
+        effective_spread_constraint = spread_constraint
+        if spread_constraint_bps is not None:
+            eff_bps = float(spread_constraint_bps)
+            if target_volatility > 0 and volatility > 0:
+                vol_ratio = min(5.0, max(0.5, float(volatility) / target_volatility))
+                eff_bps *= (1.0 + (vol_spread_scale * max(0.0, vol_ratio - 1.0)))
+            if risk_off:
+                eff_bps *= 1.25
+            effective_spread_constraint = mid_price * (eff_bps / 10_000.0)
+
+        effective_min_edge_bps = float(min_edge_bps)
+        if risk_off:
+            effective_min_edge_bps += 0.5
+
+        effective_soft_limit = int(soft_limit * (risk_off_inventory_scale if risk_off else 1.0))
+        effective_soft_limit = max(1, effective_soft_limit)
+
+        adverse_return_bps = float(params.get("adverse_return_bps", 0.0)) if isinstance(params, dict) else 0.0
+        row_return = self._normalize_return(row)
+        adverse_buy_block = bool(adverse_return_bps > 0 and row_return <= -(adverse_return_bps / 10_000.0))
+        adverse_sell_block = bool(adverse_return_bps > 0 and row_return >= (adverse_return_bps / 10_000.0))
+
+        return {
+            "peak_value": peak_value,
+            "current_value": current_value,
+            "drawdown_pct": float(drawdown_pct),
+            "hard_stop_triggered": hard_stop_triggered,
+            "risk_off": risk_off,
+            "effective_spread_constraint": effective_spread_constraint,
+            "effective_min_edge_bps": effective_min_edge_bps,
+            "effective_soft_limit": effective_soft_limit,
+            "adverse_buy_block": adverse_buy_block,
+            "adverse_sell_block": adverse_sell_block,
+        }
         
     def reset(self):
         """Reset the backtest to initial state"""
@@ -40,6 +129,7 @@ class BacktestEngine:
         self.inventory = 0
         self.trades = []
         self.positions = []
+        self._cooldown_remaining = 0
         self.metrics = {
             'total_pnl': 0,
             'realized_pnl': 0,
@@ -80,6 +170,15 @@ class BacktestEngine:
         
         logger.info(f"Starting backtest with {len(self.market_data)} data points")
         
+        spread_constraint = params.get("spread_constraint") if isinstance(params, dict) else None
+        spread_constraint_bps = params.get("spread_constraint_bps") if isinstance(params, dict) else None
+        min_edge_bps = float(params.get("min_edge_bps", self.min_edge_bps)) if isinstance(params, dict) else self.min_edge_bps
+        inventory_soft_limit_ratio = float(params.get("inventory_soft_limit_ratio", 0.8)) if isinstance(params, dict) else 0.8
+        cooldown_steps = int(params.get("cooldown_steps", self.cooldown_steps)) if isinstance(params, dict) else self.cooldown_steps
+        inventory_soft_limit_ratio = min(max(inventory_soft_limit_ratio, 0.1), 0.99)
+        soft_limit = max(1, int(max_inventory * inventory_soft_limit_ratio))
+        peak_value = float(self.initial_capital)
+
         for i, (timestamp, row) in enumerate(self.market_data.iterrows()):
             mid_price = row['mid_price']
             volatility = row['volatility']
@@ -90,18 +189,72 @@ class BacktestEngine:
                 model.set_parameters(volatility=volatility)
                 
             # Get model quotes
-            spread_constraint = params.get("spread_constraint") if isinstance(params, dict) else None
-            bid_price, ask_price = model.calculate_optimal_quotes(mid_price, spread_constraint=spread_constraint)
-            
-            # Simulate market interactions (simple model)
-            bid_executed, ask_executed = self._simulate_executions(bid_price, ask_price, row)
+            overlays = self._apply_risk_overlays(
+                row=row,
+                mid_price=mid_price,
+                volatility=volatility,
+                peak_value=peak_value,
+                spread_constraint=spread_constraint,
+                spread_constraint_bps=spread_constraint_bps,
+                min_edge_bps=min_edge_bps,
+                soft_limit=soft_limit,
+                params=params,
+            )
+            peak_value = overlays["peak_value"]
+
+            if overlays["hard_stop_triggered"]:
+                if self.inventory != 0:
+                    liquidation_price = mid_price * (0.995 if self.inventory > 0 else 1.005)
+                    self._process_trade(
+                        timestamp,
+                        "LIQUIDATION",
+                        liquidation_price,
+                        self.inventory,
+                        mid_price,
+                    )
+                self.positions.append({
+                    'timestamp': timestamp,
+                    'mid_price': mid_price,
+                    'inventory': self.inventory,
+                    'capital': self.capital,
+                    'unrealized_pnl': self._calculate_unrealized_pnl(mid_price),
+                    'total_value': self.capital + self._calculate_unrealized_pnl(mid_price)
+                })
+                logger.warning(f"Hard drawdown stop triggered at step {i}; stopping backtest run")
+                break
+
+            spread_for_step = overlays["effective_spread_constraint"]
+            bid_price, ask_price = model.calculate_optimal_quotes(mid_price, spread_constraint=spread_for_step)
+
+            gross_spread_frac = max(0.0, (ask_price - bid_price) / max(1e-9, mid_price))
+            net_edge_bps = (gross_spread_frac - (2 * self.transaction_fee)) * 10_000
+            effective_min_edge_bps = overlays["effective_min_edge_bps"]
+            if effective_min_edge_bps > 0 and net_edge_bps < effective_min_edge_bps:
+                bid_executed, ask_executed = False, False
+            elif self._cooldown_remaining > 0:
+                self._cooldown_remaining -= 1
+                bid_executed, ask_executed = False, False
+            else:
+                bid_executed, ask_executed = self._simulate_executions(bid_price, ask_price, row)
+
+            effective_soft_limit = overlays["effective_soft_limit"]
+            if self.inventory >= effective_soft_limit:
+                bid_executed = False
+            if self.inventory <= -effective_soft_limit:
+                ask_executed = False
+            if overlays["adverse_buy_block"]:
+                bid_executed = False
+            if overlays["adverse_sell_block"] and self.inventory <= 0:
+                ask_executed = False
             
             # Process trades and update positions
             if bid_executed:
                 self._process_trade(timestamp, 'BUY', bid_price, 1, mid_price)
+                self._cooldown_remaining = cooldown_steps
                 
             if ask_executed and self.inventory > 0:
                 self._process_trade(timestamp, 'SELL', ask_price, 1, mid_price)
+                self._cooldown_remaining = cooldown_steps
             
             # Check inventory limits
             if abs(self.inventory) >= max_inventory:
@@ -170,6 +323,15 @@ class BacktestEngine:
         
         logger.info(f"Starting enhanced backtest with {len(self.market_data)} data points")
         
+        spread_constraint = params.get("spread_constraint") if isinstance(params, dict) else None
+        spread_constraint_bps = params.get("spread_constraint_bps") if isinstance(params, dict) else None
+        min_edge_bps = float(params.get("min_edge_bps", self.min_edge_bps)) if isinstance(params, dict) else self.min_edge_bps
+        inventory_soft_limit_ratio = float(params.get("inventory_soft_limit_ratio", 0.8)) if isinstance(params, dict) else 0.8
+        cooldown_steps = int(params.get("cooldown_steps", self.cooldown_steps)) if isinstance(params, dict) else self.cooldown_steps
+        inventory_soft_limit_ratio = min(max(inventory_soft_limit_ratio, 0.1), 0.99)
+        soft_limit = max(1, int(max_inventory * inventory_soft_limit_ratio))
+        peak_value = float(self.initial_capital)
+
         for i, (timestamp, row) in enumerate(self.market_data.iterrows()):
             mid_price = row['mid_price']
             volatility = row['volatility']
@@ -211,8 +373,42 @@ class BacktestEngine:
                 model.set_parameters(**params_update)
                 
             # Get model quotes
-            spread_constraint = params.get("spread_constraint") if isinstance(params, dict) else None
-            bid_price, ask_price = model.calculate_optimal_quotes(mid_price, spread_constraint=spread_constraint)
+            overlays = self._apply_risk_overlays(
+                row=row,
+                mid_price=mid_price,
+                volatility=volatility,
+                peak_value=peak_value,
+                spread_constraint=spread_constraint,
+                spread_constraint_bps=spread_constraint_bps,
+                min_edge_bps=min_edge_bps,
+                soft_limit=soft_limit,
+                params=params,
+            )
+            peak_value = overlays["peak_value"]
+
+            if overlays["hard_stop_triggered"]:
+                if self.inventory != 0:
+                    liquidation_price = mid_price * (0.995 if self.inventory > 0 else 1.005)
+                    self._process_trade(
+                        timestamp,
+                        "LIQUIDATION",
+                        liquidation_price,
+                        self.inventory,
+                        mid_price,
+                    )
+                self.positions.append({
+                    'timestamp': timestamp,
+                    'mid_price': mid_price,
+                    'inventory': self.inventory,
+                    'capital': self.capital,
+                    'unrealized_pnl': self._calculate_unrealized_pnl(mid_price),
+                    'total_value': self.capital + self._calculate_unrealized_pnl(mid_price)
+                })
+                logger.warning(f"Hard drawdown stop triggered at step {i}; stopping enhanced backtest run")
+                break
+
+            spread_for_step = overlays["effective_spread_constraint"]
+            bid_price, ask_price = model.calculate_optimal_quotes(mid_price, spread_constraint=spread_for_step)
             
             # Adjust quotes based on short-term price prediction if available
             if 'price_move_signal' in market_features:
@@ -226,15 +422,35 @@ class BacktestEngine:
                     bid_price += signal_adjustment * 0.5
                     ask_price += signal_adjustment
             
-            # Simulate market interactions (simple model)
-            bid_executed, ask_executed = self._simulate_executions(bid_price, ask_price, row)
+            gross_spread_frac = max(0.0, (ask_price - bid_price) / max(1e-9, mid_price))
+            net_edge_bps = (gross_spread_frac - (2 * self.transaction_fee)) * 10_000
+            effective_min_edge_bps = overlays["effective_min_edge_bps"]
+            if effective_min_edge_bps > 0 and net_edge_bps < effective_min_edge_bps:
+                bid_executed, ask_executed = False, False
+            elif self._cooldown_remaining > 0:
+                self._cooldown_remaining -= 1
+                bid_executed, ask_executed = False, False
+            else:
+                bid_executed, ask_executed = self._simulate_executions(bid_price, ask_price, row)
+
+            effective_soft_limit = overlays["effective_soft_limit"]
+            if self.inventory >= effective_soft_limit:
+                bid_executed = False
+            if self.inventory <= -effective_soft_limit:
+                ask_executed = False
+            if overlays["adverse_buy_block"]:
+                bid_executed = False
+            if overlays["adverse_sell_block"] and self.inventory <= 0:
+                ask_executed = False
             
             # Process trades and update positions
             if bid_executed:
                 self._process_trade(timestamp, 'BUY', bid_price, 1, mid_price)
+                self._cooldown_remaining = cooldown_steps
                 
             if ask_executed and self.inventory > 0:
                 self._process_trade(timestamp, 'SELL', ask_price, 1, mid_price)
+                self._cooldown_remaining = cooldown_steps
             
             # Check inventory limits
             if abs(self.inventory) >= max_inventory:
@@ -289,18 +505,54 @@ class BacktestEngine:
         low_price = market_data.get('low', mid_price * 0.995)
         high_price = market_data.get('high', mid_price * 1.005)
         
-        # Simple model: orders execute if they cross market prices
-        bid_executed = bid_price >= low_price
-        ask_executed = ask_price <= high_price
-        
-        # Add randomness to simulate partial executions
-        if bid_price < mid_price and not bid_executed:
-            bid_executed = np.random.random() < 0.2 * (bid_price / low_price)
-            
-        if ask_price > mid_price and not ask_executed:
-            ask_executed = np.random.random() < 0.2 * (high_price / ask_price)
-            
+        bid_prob = self._execution_probability(
+            quote_price=bid_price,
+            mid_price=mid_price,
+            side='BUY',
+            low_price=low_price,
+            high_price=high_price,
+        )
+        ask_prob = self._execution_probability(
+            quote_price=ask_price,
+            mid_price=mid_price,
+            side='SELL',
+            low_price=low_price,
+            high_price=high_price,
+        )
+
+        bid_executed = bool(self.rng.random() < bid_prob)
+        ask_executed = bool(self.rng.random() < ask_prob)
+
+        if bid_executed and ask_executed:
+            if self.inventory > 0:
+                bid_executed = False
+            elif self.inventory < 0:
+                ask_executed = False
+            elif self.rng.random() < 0.5:
+                ask_executed = False
+            else:
+                bid_executed = False
+
         return bid_executed, ask_executed
+
+    def _execution_probability(self, quote_price, mid_price, side, low_price, high_price):
+        if mid_price <= 0:
+            return 0.0
+
+        if side == 'BUY':
+            if quote_price >= mid_price:
+                return 0.95
+            distance_bps = max(0.0, (mid_price - quote_price) / mid_price * 10_000)
+            touch_bonus = 0.25 if quote_price >= low_price else 0.0
+        else:
+            if quote_price <= mid_price:
+                return 0.95
+            distance_bps = max(0.0, (quote_price - mid_price) / mid_price * 10_000)
+            touch_bonus = 0.25 if quote_price <= high_price else 0.0
+
+        decay = np.exp(-distance_bps / self.execution_sensitivity)
+        base_prob = 0.05 + (0.55 * decay) + touch_bonus
+        return float(np.clip(base_prob, 0.01, 0.95))
         
     def _process_trade(self, timestamp, side, price, quantity, mid_price):
         """
