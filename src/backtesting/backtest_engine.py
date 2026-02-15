@@ -29,6 +29,14 @@ class BacktestEngine:
         min_edge_bps=0.0,
         cooldown_steps=1,
         execution_sensitivity=120.0,
+        base_slippage_bps=1.2,
+        slippage_volatility_scale=0.025,
+        market_impact_bps=0.8,
+        latency_ms=80.0,
+        latency_penalty_bps_per_100ms=0.12,
+        adverse_selection_bps=0.4,
+        fill_probability_floor=0.01,
+        fill_probability_ceiling=0.95,
     ):
         """
         Initialize the backtest engine
@@ -45,6 +53,16 @@ class BacktestEngine:
         self.min_edge_bps = float(min_edge_bps)
         self.cooldown_steps = int(max(0, cooldown_steps))
         self.execution_sensitivity = float(max(1.0, execution_sensitivity))
+        self.base_slippage_bps = float(max(0.0, base_slippage_bps))
+        self.slippage_volatility_scale = float(max(0.0, slippage_volatility_scale))
+        self.market_impact_bps = float(max(0.0, market_impact_bps))
+        self.latency_ms = float(max(0.0, latency_ms))
+        self.latency_penalty_bps_per_100ms = float(max(0.0, latency_penalty_bps_per_100ms))
+        self.adverse_selection_bps = float(max(0.0, adverse_selection_bps))
+        self.fill_probability_floor = float(np.clip(fill_probability_floor, 0.0, 1.0))
+        self.fill_probability_ceiling = float(np.clip(fill_probability_ceiling, 0.0, 1.0))
+        if self.fill_probability_ceiling < self.fill_probability_floor:
+            self.fill_probability_ceiling = self.fill_probability_floor
         self.rng = np.random.default_rng(self.random_seed)
         self.reset()
 
@@ -130,6 +148,15 @@ class BacktestEngine:
         self.trades = []
         self.positions = []
         self._cooldown_remaining = 0
+        self._fills_attempted = 0
+        self._fills_completed = 0
+        self._executed_notional = 0.0
+        self._slippage_cost = 0.0
+        self._latency_cost = 0.0
+        self._impact_cost = 0.0
+        self._adverse_selection_cost = 0.0
+        self._realized_edge_bps_weighted = 0.0
+        self._realized_edge_weight = 0.0
         self.metrics = {
             'total_pnl': 0,
             'realized_pnl': 0,
@@ -138,7 +165,19 @@ class BacktestEngine:
             'max_inventory': 0,
             'n_trades': 0,
             'sharpe_ratio': 0,
-            'win_rate': 0
+            'win_rate': 0,
+            'fills_attempted': 0,
+            'fills_completed': 0,
+            'fill_ratio': 0,
+            'executed_notional': 0,
+            'execution_cost': 0,
+            'slippage_cost': 0,
+            'latency_cost': 0,
+            'impact_cost': 0,
+            'adverse_selection_cost': 0,
+            'execution_cost_bps': 0,
+            'realized_edge_bps': 0,
+            'execution_quality_score': 0,
         }
         
     def run_backtest(self, model, params=None, max_inventory=100, volatility_window=20):
@@ -239,36 +278,74 @@ class BacktestEngine:
             gross_spread_frac = max(0.0, (ask_price - bid_price) / max(1e-9, mid_price))
             net_edge_bps = (gross_spread_frac - (2 * self.transaction_fee)) * 10_000
             effective_min_edge_bps = overlays["effective_min_edge_bps"]
+            effective_soft_limit = overlays["effective_soft_limit"]
+            allow_bid, allow_ask = True, True
             if effective_min_edge_bps > 0 and net_edge_bps < effective_min_edge_bps:
-                bid_executed, ask_executed = False, False
+                allow_bid, allow_ask = False, False
             elif self._cooldown_remaining > 0:
                 self._cooldown_remaining -= 1
-                bid_executed, ask_executed = False, False
-            else:
-                bid_executed, ask_executed = self._simulate_executions(bid_price, ask_price, row)
+                allow_bid, allow_ask = False, False
 
-            effective_soft_limit = overlays["effective_soft_limit"]
             if self.inventory >= effective_soft_limit:
-                bid_executed = False
+                allow_bid = False
             if self.inventory <= -effective_soft_limit:
-                ask_executed = False
+                allow_ask = False
             if overlays["adverse_buy_block"]:
-                bid_executed = False
+                allow_bid = False
             if overlays["adverse_sell_block"] and self.inventory <= 0:
-                ask_executed = False
+                allow_ask = False
+
+            if allow_bid or allow_ask:
+                bid_executed, ask_executed = self._simulate_executions(
+                    bid_price,
+                    ask_price,
+                    row,
+                    allow_bid=allow_bid,
+                    allow_ask=allow_ask,
+                )
+            else:
+                bid_executed, ask_executed = False, False
             
             # Process trades and update positions
             if bid_executed:
                 affordable_qty = self.capital / max(1e-9, (bid_price * (1.0 + self.transaction_fee)))
                 trade_qty = min(base_order_qty, max(0.0, float(affordable_qty)))
                 if trade_qty >= min_order_qty:
-                    self._process_trade(timestamp, 'BUY', bid_price, trade_qty, mid_price)
+                    execution_meta = self._estimate_execution(
+                        side='BUY',
+                        quote_price=bid_price,
+                        quantity=trade_qty,
+                        mid_price=mid_price,
+                        row=row,
+                    )
+                    self._process_trade(
+                        timestamp,
+                        'BUY',
+                        execution_meta["execution_price"],
+                        trade_qty,
+                        mid_price,
+                        execution_meta=execution_meta,
+                    )
                     self._cooldown_remaining = cooldown_steps
                 
             if ask_executed and self.inventory > 0:
                 trade_qty = min(base_order_qty, max(0.0, float(self.inventory)))
                 if trade_qty >= min_order_qty:
-                    self._process_trade(timestamp, 'SELL', ask_price, trade_qty, mid_price)
+                    execution_meta = self._estimate_execution(
+                        side='SELL',
+                        quote_price=ask_price,
+                        quantity=trade_qty,
+                        mid_price=mid_price,
+                        row=row,
+                    )
+                    self._process_trade(
+                        timestamp,
+                        'SELL',
+                        execution_meta["execution_price"],
+                        trade_qty,
+                        mid_price,
+                        execution_meta=execution_meta,
+                    )
                     self._cooldown_remaining = cooldown_steps
             
             # Check inventory limits
@@ -450,36 +527,74 @@ class BacktestEngine:
             gross_spread_frac = max(0.0, (ask_price - bid_price) / max(1e-9, mid_price))
             net_edge_bps = (gross_spread_frac - (2 * self.transaction_fee)) * 10_000
             effective_min_edge_bps = overlays["effective_min_edge_bps"]
+            effective_soft_limit = overlays["effective_soft_limit"]
+            allow_bid, allow_ask = True, True
             if effective_min_edge_bps > 0 and net_edge_bps < effective_min_edge_bps:
-                bid_executed, ask_executed = False, False
+                allow_bid, allow_ask = False, False
             elif self._cooldown_remaining > 0:
                 self._cooldown_remaining -= 1
-                bid_executed, ask_executed = False, False
-            else:
-                bid_executed, ask_executed = self._simulate_executions(bid_price, ask_price, row)
+                allow_bid, allow_ask = False, False
 
-            effective_soft_limit = overlays["effective_soft_limit"]
             if self.inventory >= effective_soft_limit:
-                bid_executed = False
+                allow_bid = False
             if self.inventory <= -effective_soft_limit:
-                ask_executed = False
+                allow_ask = False
             if overlays["adverse_buy_block"]:
-                bid_executed = False
+                allow_bid = False
             if overlays["adverse_sell_block"] and self.inventory <= 0:
-                ask_executed = False
+                allow_ask = False
+
+            if allow_bid or allow_ask:
+                bid_executed, ask_executed = self._simulate_executions(
+                    bid_price,
+                    ask_price,
+                    row,
+                    allow_bid=allow_bid,
+                    allow_ask=allow_ask,
+                )
+            else:
+                bid_executed, ask_executed = False, False
             
             # Process trades and update positions
             if bid_executed:
                 affordable_qty = self.capital / max(1e-9, (bid_price * (1.0 + self.transaction_fee)))
                 trade_qty = min(base_order_qty, max(0.0, float(affordable_qty)))
                 if trade_qty >= min_order_qty:
-                    self._process_trade(timestamp, 'BUY', bid_price, trade_qty, mid_price)
+                    execution_meta = self._estimate_execution(
+                        side='BUY',
+                        quote_price=bid_price,
+                        quantity=trade_qty,
+                        mid_price=mid_price,
+                        row=row,
+                    )
+                    self._process_trade(
+                        timestamp,
+                        'BUY',
+                        execution_meta["execution_price"],
+                        trade_qty,
+                        mid_price,
+                        execution_meta=execution_meta,
+                    )
                     self._cooldown_remaining = cooldown_steps
                 
             if ask_executed and self.inventory > 0:
                 trade_qty = min(base_order_qty, max(0.0, float(self.inventory)))
                 if trade_qty >= min_order_qty:
-                    self._process_trade(timestamp, 'SELL', ask_price, trade_qty, mid_price)
+                    execution_meta = self._estimate_execution(
+                        side='SELL',
+                        quote_price=ask_price,
+                        quantity=trade_qty,
+                        mid_price=mid_price,
+                        row=row,
+                    )
+                    self._process_trade(
+                        timestamp,
+                        'SELL',
+                        execution_meta["execution_price"],
+                        trade_qty,
+                        mid_price,
+                        execution_meta=execution_meta,
+                    )
                     self._cooldown_remaining = cooldown_steps
             
             # Check inventory limits
@@ -519,7 +634,7 @@ class BacktestEngine:
             'positions': pd.DataFrame(self.positions) if self.positions else pd.DataFrame()
         }
         
-    def _simulate_executions(self, bid_price, ask_price, market_data):
+    def _simulate_executions(self, bid_price, ask_price, market_data, allow_bid=True, allow_ask=True):
         """
         Simulate whether orders are executed based on market data
         
@@ -535,23 +650,28 @@ class BacktestEngine:
         low_price = market_data.get('low', mid_price * 0.995)
         high_price = market_data.get('high', mid_price * 1.005)
         
-        bid_prob = self._execution_probability(
-            quote_price=bid_price,
-            mid_price=mid_price,
-            side='BUY',
-            low_price=low_price,
-            high_price=high_price,
-        )
-        ask_prob = self._execution_probability(
-            quote_price=ask_price,
-            mid_price=mid_price,
-            side='SELL',
-            low_price=low_price,
-            high_price=high_price,
-        )
+        bid_prob = 0.0
+        ask_prob = 0.0
+        if allow_bid:
+            bid_prob = self._execution_probability(
+                quote_price=bid_price,
+                mid_price=mid_price,
+                side='BUY',
+                low_price=low_price,
+                high_price=high_price,
+            )
+        if allow_ask:
+            ask_prob = self._execution_probability(
+                quote_price=ask_price,
+                mid_price=mid_price,
+                side='SELL',
+                low_price=low_price,
+                high_price=high_price,
+            )
 
-        bid_executed = bool(self.rng.random() < bid_prob)
-        ask_executed = bool(self.rng.random() < ask_prob)
+        self._fills_attempted += int(bool(allow_bid)) + int(bool(allow_ask))
+        bid_executed = bool(allow_bid and (self.rng.random() < bid_prob))
+        ask_executed = bool(allow_ask and (self.rng.random() < ask_prob))
 
         if bid_executed and ask_executed:
             if self.inventory > 0:
@@ -571,20 +691,74 @@ class BacktestEngine:
 
         if side == 'BUY':
             if quote_price >= mid_price:
-                return 0.95
+                return self.fill_probability_ceiling
             distance_bps = max(0.0, (mid_price - quote_price) / mid_price * 10_000)
             touch_bonus = 0.25 if quote_price >= low_price else 0.0
         else:
             if quote_price <= mid_price:
-                return 0.95
+                return self.fill_probability_ceiling
             distance_bps = max(0.0, (quote_price - mid_price) / mid_price * 10_000)
             touch_bonus = 0.25 if quote_price <= high_price else 0.0
 
         decay = np.exp(-distance_bps / self.execution_sensitivity)
         base_prob = 0.05 + (0.55 * decay) + touch_bonus
-        return float(np.clip(base_prob, 0.01, 0.95))
+        return float(np.clip(base_prob, self.fill_probability_floor, self.fill_probability_ceiling))
+
+    def _estimate_execution(self, side, quote_price, quantity, mid_price, row):
+        volatility = abs(float(row.get("volatility", 0.0))) if hasattr(row, "get") else 0.0
+        vol_bps = volatility * 10_000.0
+        slippage_bps = self.base_slippage_bps + (self.slippage_volatility_scale * vol_bps)
+        latency_bps = (self.latency_ms / 100.0) * self.latency_penalty_bps_per_100ms
+
+        volume = 0.0
+        if hasattr(row, "get"):
+            raw_volume = row.get("volume", 0.0)
+            if pd.notna(raw_volume):
+                volume = max(0.0, float(raw_volume))
+        reference_liquidity = max(quantity * 5.0, volume)
+        participation = quantity / max(1e-9, reference_liquidity)
+        participation = float(np.clip(participation, 0.0, 1.0))
+        impact_bps = self.market_impact_bps * np.sqrt(participation)
+
+        row_return = self._normalize_return(row)
+        adverse_bps = 0.0
+        if side == "BUY" and row_return < 0:
+            adverse_bps = self.adverse_selection_bps * min(2.0, abs(row_return) * 1000.0)
+        elif side == "SELL" and row_return > 0:
+            adverse_bps = self.adverse_selection_bps * min(2.0, abs(row_return) * 1000.0)
+
+        total_bps = slippage_bps + latency_bps + impact_bps + adverse_bps
+        total_delta = quote_price * (total_bps / 10_000.0)
+        execution_price = quote_price + total_delta if side == "BUY" else max(1e-9, quote_price - total_delta)
+
+        slippage_cost = quote_price * quantity * (slippage_bps / 10_000.0)
+        latency_cost = quote_price * quantity * (latency_bps / 10_000.0)
+        impact_cost = quote_price * quantity * (impact_bps / 10_000.0)
+        adverse_cost = quote_price * quantity * (adverse_bps / 10_000.0)
+        execution_cost = slippage_cost + latency_cost + impact_cost + adverse_cost
+
+        fee_bps = self.transaction_fee * 10_000.0
+        if side == "BUY":
+            realized_edge_bps = ((mid_price - execution_price) / max(1e-9, mid_price) * 10_000.0) - fee_bps
+        else:
+            realized_edge_bps = ((execution_price - mid_price) / max(1e-9, mid_price) * 10_000.0) - fee_bps
+
+        return {
+            "quote_price": float(quote_price),
+            "execution_price": float(execution_price),
+            "slippage_bps": float(max(0.0, slippage_bps)),
+            "latency_bps": float(max(0.0, latency_bps)),
+            "impact_bps": float(max(0.0, impact_bps)),
+            "adverse_selection_bps": float(max(0.0, adverse_bps)),
+            "execution_cost": float(max(0.0, execution_cost)),
+            "slippage_cost": float(max(0.0, slippage_cost)),
+            "latency_cost": float(max(0.0, latency_cost)),
+            "impact_cost": float(max(0.0, impact_cost)),
+            "adverse_selection_cost": float(max(0.0, adverse_cost)),
+            "realized_edge_bps": float(realized_edge_bps),
+        }
         
-    def _process_trade(self, timestamp, side, price, quantity, mid_price):
+    def _process_trade(self, timestamp, side, price, quantity, mid_price, execution_meta=None):
         """
         Process a trade and update inventory and capital
         
@@ -607,17 +781,40 @@ class BacktestEngine:
             # Quantity is signed inventory before liquidation. Positive means sell, negative means buy-to-cover.
             self.capital += price * quantity - fee
             self.inventory = 0
+
+        quote_price = float(price)
+        if execution_meta and isinstance(execution_meta, dict):
+            quote_price = float(execution_meta.get("quote_price", price))
+
+        if side in {'BUY', 'SELL'}:
+            self._fills_completed += 1
+            notional = abs(float(price) * float(quantity))
+            self._executed_notional += notional
+            if execution_meta and isinstance(execution_meta, dict):
+                self._slippage_cost += float(execution_meta.get("slippage_cost", 0.0))
+                self._latency_cost += float(execution_meta.get("latency_cost", 0.0))
+                self._impact_cost += float(execution_meta.get("impact_cost", 0.0))
+                self._adverse_selection_cost += float(execution_meta.get("adverse_selection_cost", 0.0))
+                self._realized_edge_bps_weighted += float(execution_meta.get("realized_edge_bps", 0.0)) * notional
+                self._realized_edge_weight += notional
             
         # Record the trade
         self.trades.append({
             'timestamp': timestamp,
             'side': side,
+            'quote_price': quote_price,
             'price': price,
             'quantity': quantity,
             'fee': fee,
             'mid_price': mid_price,
             'inventory': self.inventory,
-            'capital': self.capital
+            'capital': self.capital,
+            'slippage_cost': float(execution_meta.get("slippage_cost", 0.0)) if isinstance(execution_meta, dict) else 0.0,
+            'latency_cost': float(execution_meta.get("latency_cost", 0.0)) if isinstance(execution_meta, dict) else 0.0,
+            'impact_cost': float(execution_meta.get("impact_cost", 0.0)) if isinstance(execution_meta, dict) else 0.0,
+            'adverse_selection_cost': float(execution_meta.get("adverse_selection_cost", 0.0)) if isinstance(execution_meta, dict) else 0.0,
+            'execution_cost': float(execution_meta.get("execution_cost", 0.0)) if isinstance(execution_meta, dict) else 0.0,
+            'realized_edge_bps': float(execution_meta.get("realized_edge_bps", 0.0)) if isinstance(execution_meta, dict) else 0.0,
         })
         
     def _calculate_unrealized_pnl(self, current_price):
@@ -683,6 +880,46 @@ class BacktestEngine:
                 profitable_trades['profit'] = profitable_trades['price'] - profitable_trades['buy_price']
                 wins = len(profitable_trades[profitable_trades['profit'] > 0])
                 self.metrics['win_rate'] = wins / len(profitable_trades) if len(profitable_trades) > 0 else 0
+
+        total_execution_cost = (
+            self._slippage_cost
+            + self._latency_cost
+            + self._impact_cost
+            + self._adverse_selection_cost
+        )
+        fill_ratio = (
+            self._fills_completed / self._fills_attempted
+            if self._fills_attempted > 0
+            else 0.0
+        )
+        execution_cost_bps = (
+            (total_execution_cost / max(1e-9, self._executed_notional)) * 10_000.0
+            if self._executed_notional > 0
+            else 0.0
+        )
+        realized_edge_bps = (
+            self._realized_edge_bps_weighted / max(1e-9, self._realized_edge_weight)
+            if self._realized_edge_weight > 0
+            else 0.0
+        )
+        execution_quality_score = np.clip(
+            (35.0 * fill_ratio) + (0.6 * realized_edge_bps) - (1.8 * execution_cost_bps) + 45.0,
+            0.0,
+            100.0,
+        )
+
+        self.metrics['fills_attempted'] = int(self._fills_attempted)
+        self.metrics['fills_completed'] = int(self._fills_completed)
+        self.metrics['fill_ratio'] = float(fill_ratio)
+        self.metrics['executed_notional'] = float(self._executed_notional)
+        self.metrics['execution_cost'] = float(total_execution_cost)
+        self.metrics['slippage_cost'] = float(self._slippage_cost)
+        self.metrics['latency_cost'] = float(self._latency_cost)
+        self.metrics['impact_cost'] = float(self._impact_cost)
+        self.metrics['adverse_selection_cost'] = float(self._adverse_selection_cost)
+        self.metrics['execution_cost_bps'] = float(execution_cost_bps)
+        self.metrics['realized_edge_bps'] = float(realized_edge_bps)
+        self.metrics['execution_quality_score'] = float(execution_quality_score)
     
     def plot_results(self, save_path=None):
         """
