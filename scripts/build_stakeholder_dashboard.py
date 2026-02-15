@@ -275,6 +275,37 @@ def build_execution_snapshot_from_quant_csv(quant_json_path: Optional[str]) -> D
     }
 
 
+def normalize_data_profile(quant: Dict[str, Any]) -> Dict[str, Any]:
+    meta = quant.get("meta", {}) or {}
+    profile = (meta.get("data_profile") or quant.get("minute_data_coverage") or {})
+    if not profile:
+        return {
+            "rows": None,
+            "start_utc": None,
+            "end_utc": None,
+            "interval_seconds_median": None,
+            "interval_seconds_p05": None,
+            "interval_seconds_p95": None,
+        }
+
+    def _num(value: Any) -> Optional[float]:
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    rows_raw = profile.get("rows", profile.get("row_count"))
+    rows_num = _num(rows_raw)
+    return {
+        "rows": int(rows_num) if rows_num is not None else None,
+        "start_utc": profile.get("start_utc", profile.get("start")),
+        "end_utc": profile.get("end_utc", profile.get("end")),
+        "interval_seconds_median": _num(profile.get("interval_seconds_median", profile.get("median_interval_seconds"))),
+        "interval_seconds_p05": _num(profile.get("interval_seconds_p05", profile.get("p05_interval_seconds"))),
+        "interval_seconds_p95": _num(profile.get("interval_seconds_p95", profile.get("p95_interval_seconds"))),
+    }
+
+
 def build_html(payload: Dict[str, Any]) -> str:
     c = payload["cards"]
     r = payload["robustness_snapshot"]
@@ -289,6 +320,27 @@ def build_html(payload: Dict[str, Any]) -> str:
     limitations = payload["limitations"]
     strategic = payload["strategic_profitability_path"]
     files = payload["files"]
+    data_rows = d.get("rows")
+    data_rows_text = str(int(data_rows)) if isinstance(data_rows, (int, float)) else "n/a"
+    data_start_text = d.get("start_utc") or "n/a"
+    data_end_text = d.get("end_utc") or "n/a"
+
+    def _fmt_optional_number(value: Any, decimals: int = 1) -> str:
+        if value is None:
+            return "n/a"
+        return f"{float(value):.{decimals}f}"
+
+    exec_has_cases = float(x.get("cases", 0.0)) > 0.0
+
+    def _fmt_exec_pct(key: str) -> str:
+        if not exec_has_cases:
+            return "n/a"
+        return pct(float(x.get(key, 0.0)))
+
+    def _fmt_exec_num(key: str, decimals: int = 2) -> str:
+        if not exec_has_cases:
+            return "n/a"
+        return f"{float(x.get(key, 0.0)):.{decimals}f}"
 
     rows = "".join(
         f"<tr><td>{h(r['strategy'])}</td><td>{r['budget']}</td><td>{pct(r.get('total_return_pct', 0.0))}</td><td>{r['sortino_ratio']:.3f}</td><td>{r['calmar_ratio']:.3f}</td><td>{pct_or_bps(r['cvar_95_pct'])}</td><td>{pct_or_bps(r['max_drawdown_pct'])}</td><td>{r['pass_rate']:.2f}</td><td>{pct(r.get('fill_ratio', 0.0))}</td><td>{r.get('execution_cost_bps', 0.0):.2f}</td><td>{r.get('execution_quality_score', 0.0):.1f}</td></tr>"
@@ -423,29 +475,29 @@ def build_html(payload: Dict[str, Any]) -> str:
     <div class=\"section\">
       <h2>Minute Data Coverage and Intervals</h2>
       <div class=\"grid\">
-        <div class=\"card\"><div class=\"k\">Rows</div><div class=\"v\">{int(d.get('rows', 0) or 0)}</div></div>
-        <div class=\"card\"><div class=\"k\">Start UTC</div><div class=\"v\" style=\"font-size:15px\">{h(d.get('start_utc', 'n/a'))}</div></div>
-        <div class=\"card\"><div class=\"k\">End UTC</div><div class=\"v\" style=\"font-size:15px\">{h(d.get('end_utc', 'n/a'))}</div></div>
-        <div class=\"card\"><div class=\"k\">Median Interval (s)</div><div class=\"v\">{float(d.get('interval_seconds_median', 0.0)):.1f}</div></div>
-        <div class=\"card\"><div class=\"k\">P05 Interval (s)</div><div class=\"v\">{float(d.get('interval_seconds_p05', 0.0)):.1f}</div></div>
-        <div class=\"card\"><div class=\"k\">P95 Interval (s)</div><div class=\"v\">{float(d.get('interval_seconds_p95', 0.0)):.1f}</div></div>
+        <div class=\"card\"><div class=\"k\">Rows</div><div class=\"v\">{data_rows_text}</div></div>
+        <div class=\"card\"><div class=\"k\">Start UTC</div><div class=\"v\" style=\"font-size:15px\">{h(data_start_text)}</div></div>
+        <div class=\"card\"><div class=\"k\">End UTC</div><div class=\"v\" style=\"font-size:15px\">{h(data_end_text)}</div></div>
+        <div class=\"card\"><div class=\"k\">Median Interval (s)</div><div class=\"v\">{_fmt_optional_number(d.get('interval_seconds_median'), 1)}</div></div>
+        <div class=\"card\"><div class=\"k\">P05 Interval (s)</div><div class=\"v\">{_fmt_optional_number(d.get('interval_seconds_p05'), 1)}</div></div>
+        <div class=\"card\"><div class=\"k\">P95 Interval (s)</div><div class=\"v\">{_fmt_optional_number(d.get('interval_seconds_p95'), 1)}</div></div>
       </div>
     </div>
 
     <div class=\"section\">
       <h2>Execution Realism Snapshot</h2>
       <div class=\"grid\">
-        <div class=\"card\"><div class=\"k\">Mean Fill Ratio</div><div class=\"v\">{pct(float(x.get('fill_ratio_mean', 0.0)))}</div></div>
-        <div class=\"card\"><div class=\"k\">Fill Ratio P05</div><div class=\"v\">{pct(float(x.get('fill_ratio_p05', 0.0)))}</div></div>
-        <div class=\"card\"><div class=\"k\">Fill Ratio P95</div><div class=\"v\">{pct(float(x.get('fill_ratio_p95', 0.0)))}</div></div>
-        <div class=\"card\"><div class=\"k\">Mean Exec Cost (bps)</div><div class=\"v warn\">{float(x.get('execution_cost_bps_mean', 0.0)):.2f}</div></div>
-        <div class=\"card\"><div class=\"k\">P95 Exec Cost (bps)</div><div class=\"v warn\">{float(x.get('execution_cost_bps_p95', 0.0)):.2f}</div></div>
-        <div class=\"card\"><div class=\"k\">Mean Realized Edge (bps)</div><div class=\"v\">{float(x.get('realized_edge_bps_mean', 0.0)):.2f}</div></div>
-        <div class=\"card\"><div class=\"k\">Execution Quality</div><div class=\"v {exec_quality_class}\">{float(x.get('execution_quality_mean', 0.0)):.1f}</div></div>
-        <div class=\"card\"><div class=\"k\">Mean Slippage Cost</div><div class=\"v\">{float(x.get('slippage_cost_mean', 0.0)):.2f}</div></div>
-        <div class=\"card\"><div class=\"k\">Mean Latency Cost</div><div class=\"v\">{float(x.get('latency_cost_mean', 0.0)):.2f}</div></div>
-        <div class=\"card\"><div class=\"k\">Mean Impact Cost</div><div class=\"v\">{float(x.get('impact_cost_mean', 0.0)):.2f}</div></div>
-        <div class=\"card\"><div class=\"k\">Mean Adverse Cost</div><div class=\"v\">{float(x.get('adverse_selection_cost_mean', 0.0)):.2f}</div></div>
+        <div class=\"card\"><div class=\"k\">Mean Fill Ratio</div><div class=\"v\">{_fmt_exec_pct('fill_ratio_mean')}</div></div>
+        <div class=\"card\"><div class=\"k\">Fill Ratio P05</div><div class=\"v\">{_fmt_exec_pct('fill_ratio_p05')}</div></div>
+        <div class=\"card\"><div class=\"k\">Fill Ratio P95</div><div class=\"v\">{_fmt_exec_pct('fill_ratio_p95')}</div></div>
+        <div class=\"card\"><div class=\"k\">Mean Exec Cost (bps)</div><div class=\"v warn\">{_fmt_exec_num('execution_cost_bps_mean', 2)}</div></div>
+        <div class=\"card\"><div class=\"k\">P95 Exec Cost (bps)</div><div class=\"v warn\">{_fmt_exec_num('execution_cost_bps_p95', 2)}</div></div>
+        <div class=\"card\"><div class=\"k\">Mean Realized Edge (bps)</div><div class=\"v\">{_fmt_exec_num('realized_edge_bps_mean', 2)}</div></div>
+        <div class=\"card\"><div class=\"k\">Execution Quality</div><div class=\"v {exec_quality_class}\">{_fmt_exec_num('execution_quality_mean', 1)}</div></div>
+        <div class=\"card\"><div class=\"k\">Mean Slippage Cost</div><div class=\"v\">{_fmt_exec_num('slippage_cost_mean', 2)}</div></div>
+        <div class=\"card\"><div class=\"k\">Mean Latency Cost</div><div class=\"v\">{_fmt_exec_num('latency_cost_mean', 2)}</div></div>
+        <div class=\"card\"><div class=\"k\">Mean Impact Cost</div><div class=\"v\">{_fmt_exec_num('impact_cost_mean', 2)}</div></div>
+        <div class=\"card\"><div class=\"k\">Mean Adverse Cost</div><div class=\"v\">{_fmt_exec_num('adverse_selection_cost_mean', 2)}</div></div>
       </div>
       <p class=\"small\">Execution realism now includes slippage, latency, market impact, and adverse-selection penalties in each simulated fill.</p>
     </div>
@@ -537,7 +589,7 @@ def main() -> int:
     explored = build_explored_from_quant_csv(quant_source_path)
     robustness_snapshot = build_robustness_snapshot_from_quant_csv(quant_source_path)
     execution_snapshot = build_execution_snapshot_from_quant_csv(quant_source_path)
-    data_profile = (quant_anchor.get("meta", {}) or {}).get("data_profile", {})
+    data_profile = normalize_data_profile(quant_anchor)
     total_cases = int(quant_anchor.get("total_cases", 0) or 0)
     gate_pass_count = int(quant_anchor.get("gate_pass_count", 0) or 0)
     gate_pass_ratio = (gate_pass_count / total_cases) if total_cases > 0 else 0.0

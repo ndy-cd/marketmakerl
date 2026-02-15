@@ -32,7 +32,7 @@ make research-budgets EXCHANGE=binance SYMBOL=BTC/USDT
 4. Run walk-forward stability gate:
 
 ```bash
-make walk-forward EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30
+make walk-forward EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m DAYS=30
 ```
 
 5. Run end-to-end MVP launch workflow:
@@ -47,7 +47,14 @@ make mvp-launch EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30
 make daily-smoke EXCHANGE=binance SYMBOL=BTC/USDT ITERATIONS=2 POLL_SECONDS=1
 make data-freshness EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m
 make weekly-report
-make quant-experiments EXCHANGE=binance SYMBOL=BTC/USDT DAYS=60 WINDOW_DAYS=7 MAX_WINDOWS=6 BUDGETS=5000,10000,15000 VARIANTS=conservative,balanced,adaptive SEEDS=42,99 MAX_TOTAL_RETURN_PCT=1.0
+make quant-experiments EXCHANGE=binance SYMBOL=BTC/USDT DAYS=60 WINDOW_DAYS=7 MAX_WINDOWS=6 BUDGETS=5000,10000,15000 VARIANTS=conservative,balanced,adaptive SEEDS=42,99 MAX_TOTAL_RETURN_PCT=0.25
+make quant-experiments-1k EXCHANGE=binance SYMBOL=BTC/USDT
+make quant-top20-deep EXCHANGE=binance SYMBOL=BTC/USDT
+make production-grade-step VERSION=e7-round1 EXCHANGE=binance SYMBOL=BTC/USDT
+make release-guardrails
+make version-rebuild VERSION=e4
+make epoch-3 EXCHANGE=binance SYMBOL=BTC/USDT
+make epoch-4 VERSION=e4 EXCHANGE=binance SYMBOL=BTC/USDT
 make realization-step EXCHANGE=binance SYMBOL=BTC/USDT SYMBOLS=BTC/USDT,ETH/USDT
 make stakeholder-dashboard
 make consistency-check
@@ -56,6 +63,11 @@ make dashboard-open
 # or:
 make dashboard-serve DASHBOARD_PORT=8000
 ```
+
+Dashboard serving is hardened for local demos:
+- no directory listing
+- path traversal blocked (e.g. `/../`)
+- dashboard root limited to `docs/showcase`
 
 Stakeholder dashboard output:
 
@@ -67,6 +79,9 @@ Stakeholder dashboard output:
 - Paper/simulation only for MVP.
 - Quant failure rule: if drawdown exceeds `40%` of initial budget, run is a fail.
 - Quant recommendation prioritizes robust metrics (Sortino, Calmar, CVaR95, Ulcer) with plausibility filter (`MAX_TOTAL_RETURN_PCT`) over raw drawdown-only ranking.
+- Release guardrails now enforce one-minute data quality (`TIMEFRAME=1m`, minimum rows, interval sanity) before promotion decisions.
+- Version discipline: every new iteration/version must run `make version-rebuild VERSION=<tag>` before release/dashboard generation.
+- Docker execution uses full repository mount into `/app`, so metrics always reflect latest local code after rebuild.
 - `PAPER_ONLY=1` blocks:
   - `make run-live`
   - `make realtime-live`

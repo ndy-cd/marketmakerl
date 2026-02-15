@@ -9,8 +9,7 @@ services:
       PYTHONPATH: /app
       MPLCONFIGDIR: /tmp/matplotlib
     volumes:
-      - ./config:/app/config
-      - ./data:/app/data
-      - ./artifacts:/app/artifacts
-      - ./docs:/app/docs
+      # Mount full repo so Docker runs always execute latest local code
+      # (scripts/src/tests/docs), while dependencies stay image-managed.
+      - ./:/app
     command: ["python3", "scripts/run_agents.py", "--config", "config/config.yaml", "--mode", "backtest", "--max-workers", "4"]

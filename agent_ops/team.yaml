@@ -13,6 +13,7 @@ coordination:
     required_checks:
       - "make validate"
       - "make walk-forward EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30"
+      - "make release-guardrails"
   current_workboard: "agent_ops/WORKBOARD.md"
   current_policy:
     paper_only_default: true
@@ -163,3 +164,182 @@ agents:
       - plausibility checks and anomaly flags
       - robust metric definitions and thresholds
       - weekly statistical health summary
+
+  - id: A11
+    name: Cybersecurity and Platform Security Engineer
+    skill: cybersecurity-engineer
+    prompt_file: agent_ops/prompts/a11_cybersecurity_engineer.md
+    owns_paths:
+      - Makefile
+      - scripts/serve_dashboard_secure.py
+      - docs/
+      - agent_ops/
+    mission: "Prevent accidental data exposure, harden local/demo serving paths, and maintain security guardrails for paper/live operations."
+    deliverables:
+      - secure dashboard serving defaults (no listing, no traversal)
+      - leak/audit checklist for paths, secrets, and runtime exposure
+      - periodic security review note in team iteration report
+
+next_step_plan:
+  cycle_id: "E7_PRODUCTION_BRIDGE"
+  objective: "Move from MVP demo evidence to production-grade paper trading with strict one-minute data quality and execution realism blockers."
+  status: "active_cleanup"
+  latest_execution:
+    reviewed_at_utc: "2026-02-15T19:35:00Z"
+    summary: "Uncommitted docs/team artifacts came from targeted commit scoping in prior rounds. This cleanup aligns ownership, skills, and minute-data runbooks."
+    known_issues:
+      - "Some dashboard snapshots were produced from stale/missing quant sources and showed misleading zero coverage cards."
+      - "Current guardrails still block promotion for over-optimistic profiles; this is expected until E7 blockers are green."
+  release_blockers:
+    - "Quant timeframe must be 1m."
+    - "Quant data profile must show >=10000 rows and median interval between 50s and 70s."
+    - "Release guardrails and consistency checks must pass from fresh artifacts."
+    - "Dashboard security checks must pass (loopback bind, no listing, no traversal)."
+  execution_model:
+    mode: "single_command_pipeline"
+    command: "make production-grade-step VERSION=e7-round1 EXCHANGE=binance SYMBOL=BTC/USDT"
+  quant_scope:
+    symbols: ["BTC/USDT", "ETH/USDT"]
+    timeframe: "1m"
+    windows:
+      broad_search:
+        days: 14
+        window_days: 2
+        max_windows: 6
+      deep_validation:
+        days: 45
+        window_days: 3
+        max_windows: 12
+    families:
+      - defensive_core
+      - inventory_tight
+      - spread_capture
+      - trend_shield
+      - volatility_brake
+    budgets: [5000, 10000]
+    seeds:
+      broad: [21, 42, 99]
+      deep: [11, 21, 42]
+  phases:
+    - id: P0
+      name: "Workspace Cleanup + Baseline Lock"
+      owner: "A8"
+      required_outputs:
+        - "cleaned team/docs plan set"
+        - "version-rebuild artifact"
+      done_criteria:
+        - "make version-rebuild VERSION=e7-round1"
+        - "all team ownership docs aligned to A1-A11"
+    - id: P1
+      name: "One-Minute Broad Quant Sweep"
+      owner: "A10"
+      required_outputs:
+        - "1m quant artifact with non-empty data profile"
+        - "execution realism snapshot from quant CSV"
+      done_criteria:
+        - "make quant-experiments-1m EXCHANGE=binance SYMBOL=BTC/USDT DAYS=14 WINDOW_DAYS=2 MAX_WINDOWS=6 BUDGETS=5000,10000 VARIANTS=conservative,balanced,adaptive SEEDS=21,42,99 MAX_TOTAL_RETURN_PCT=0.25"
+        - "total_cases >= 20"
+    - id: P2
+      name: "Top-20 Deep Validation (1m)"
+      owner: "A7"
+      required_outputs:
+        - "top-20 strategy list"
+        - "deep 1m validation artifact"
+      done_criteria:
+        - "make quant-top20-deep-1m EXCHANGE=binance SYMBOL=BTC/USDT"
+        - "gate_pass_count == total_cases"
+    - id: P3
+      name: "Release Evidence Bundle"
+      owner: "A5"
+      required_outputs:
+        - "guardrails report"
+        - "consistency report"
+        - "stakeholder dashboard + showcase snapshot"
+      done_criteria:
+        - "make release-guardrails"
+        - "make consistency-check"
+        - "make stakeholder-dashboard && make publish-showcase"
+  parallel_design_track:
+    id: "T2_STAKEHOLDER_DESIGN"
+    owner: "A9"
+    co_owners: ["A6", "A10", "A8"]
+    objective: "Keep dashboard modern and easy to read while exposing quality blockers clearly."
+    required_kpis_in_dashboard:
+      - "recommended_strategy"
+      - "total_cases_evaluated"
+      - "gate_pass_ratio"
+      - "data_rows"
+      - "median_interval_seconds"
+      - "execution_quality_score"
+      - "fill_ratio"
+      - "cvar_95_pct"
+    acceptance_criteria:
+      - "no silent zero cards when data profile is missing; display n/a and block release via guardrails"
+      - "stakeholder can identify recommendation, data quality, and blockers in <=30 seconds"
+  team_execution:
+    A1:
+      task: "Keep Docker path deterministic and run version rebuild before E7 pipeline."
+      commands:
+        - "make version-rebuild VERSION=e7-round1"
+    A2:
+      task: "Verify one-minute data freshness before quant runs."
+      commands:
+        - "make data-freshness EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m"
+    A3:
+      task: "Keep profile parameter bounds realistic for one-minute microstructure."
+      outputs:
+        - "parameter-bound note for 1m profiles"
+    A4:
+      task: "Review execution realism costs and forced-liquidation behavior."
+      outputs:
+        - "risk note with slippage/latency/impact/adverse breakdown"
+    A5:
+      task: "Run release blockers and fail-fast checks."
+      commands:
+        - "make release-guardrails"
+        - "make consistency-check"
+    A6:
+      task: "Keep docs and commands synchronized with E7 workflow."
+      outputs:
+        - "README/guide/test docs updated to production-grade-step command"
+    A7:
+      task: "Run top-20 deep validation and rank by robustness stability."
+      commands:
+        - "make quant-top20-deep-1m EXCHANGE=binance SYMBOL=BTC/USDT"
+    A8:
+      task: "Enforce no-go unless all E7 blockers are green."
+      outputs:
+        - "PM go/no-go note with blocker checklist"
+    A9:
+      task: "Render data-quality and execution-quality cards for fast stakeholder triage."
+      outputs:
+        - "dashboard update with explicit n/a handling and clarity pass"
+    A10:
+      task: "Own one-minute quant sweep and plausibility interpretation."
+      commands:
+        - "make quant-experiments-1m EXCHANGE=binance SYMBOL=BTC/USDT DAYS=14 WINDOW_DAYS=2 MAX_WINDOWS=6 BUDGETS=5000,10000 VARIANTS=conservative,balanced,adaptive SEEDS=21,42,99 MAX_TOTAL_RETURN_PCT=0.25"
+    A11:
+      task: "Run dashboard security checks and confirm no secret/path leaks."
+      commands:
+        - "make dashboard-serve-auto DASHBOARD_PORT=8010"
+      outputs:
+        - "security review note embedded in iteration report"
+  pm_review:
+    owner: "A8"
+    required_reviews:
+      - phase: "P1"
+        checklist:
+          - "quant meta timeframe == 1m"
+          - "quant data rows >= 10000"
+          - "median interval between 50 and 70 seconds"
+      - phase: "P2"
+        checklist:
+          - "deep validation complete"
+          - "deep gate pass ratio == 1.0"
+          - "no hard-fail windows in candidate"
+      - phase: "P3"
+        checklist:
+          - "release guardrails pass"
+          - "consistency check pass"
+          - "dashboard and showcase generated from latest artifacts"
+    signoff_rule: "No production-readiness statement unless all E7 phase checklists pass."

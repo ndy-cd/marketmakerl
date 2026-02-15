@@ -1,204 +1,82 @@
-# Team Member Reports (A1-A8)
+# Team Member Reports (A1-A11)
 
-Report date: `2026-02-13`
+Update date: `2026-02-15`
+Epoch: `E7 - Production Bridge (1m Data Quality + Release Blockers)`
 
-## Round 2 Review (Market Entry Prep)
+## Summary
 
-### A1 Runtime Orchestrator
-- Status: `Updated`
-- New work:
-  - validated expanded quant matrix run in Docker (`variants`, `seeds`, `budgets`, `windows`)
-  - validated dashboard regeneration and showcase publish flow
-- Weak spot:
-  - long quant runs require runtime budget controls
-- Next:
-  - add nightly profile (`reduced matrix`) vs weekly profile (`full matrix`)
-
-### A2 Data and Signal Engineer
-- Status: `Updated`
-- New work:
-  - confirmed real public kline data ingestion over longer windows for quant runs
-- Weak spot:
-  - single exchange dependency for now
-- Next:
-  - add optional secondary exchange source for cross-check
-
-### A3 Modeling Engineer
-- Status: `Updated`
-- New work:
-  - expanded strategy variants (`conservative`, `balanced`, `adaptive`)
-  - recommendation logic shifted to robust composite score (not drawdown-only)
-- Weak spot:
-  - non-MM families still untested in MVP scope
-- Next:
-  - add one low-frequency hedge variant for adverse regimes
-
-### A4 Backtest and Risk Engineer
-- Status: `Updated`
-- New work:
-  - added robust risk statistics: `Sortino`, `Calmar`, `CVaR95`, `Ulcer`, `Profit Factor`
-  - integrated these into gate pass conditions and ranking
-- Weak spot:
-  - CVaR is based on bar returns, not fill-level PnL decomposition
-- Next:
-  - add fill/slippage-aware tail loss decomposition
-
-### A5 QA and Integration Engineer
-- Status: `Updated`
-- New work:
-  - reran regression and integration tests after quant/dashboard changes
-- Weak spot:
-  - no dedicated tests yet for quant report schema evolution
-- Next:
-  - add schema assertions for quant report required keys
-
-### A6 Documentation Architect
-- Status: `Updated`
-- New work:
-  - renamed user-facing system references to `MarketMakeRL`
-  - updated docs for new robust metrics and expanded quant command
-- Weak spot:
-  - frequent artifact refresh can cause stale snapshot confusion
-- Next:
-  - document clear “artifact vs showcase snapshot” lifecycle in one short section
-
-### A7 Quant Researcher
-- Status: `Updated`
-- New work:
-  - increased experiment breadth (more budgets, variants, seeds, window stress)
-  - replaced drawdown-centric recommendation with robust-risk composite
-- Weak spot:
-  - still paper-only; no live slippage model validation
-- Next:
-  - run rolling monthly comparison and drift diagnostics on selected profile
-
-### A8 Project Manager
-- Status: `Updated`
-- New work:
-  - re-ran full team review requirement and synchronized deliverables
-  - confirmed stakeholder dashboard now highlights robust stats for go-to-market narrative
-- Weak spot:
-  - project needs clear “entry checklist” after paper stability streak
-- Next:
-  - create go/no-go checklist for API key onboarding stage
-  - enforce statistical plausibility checkpoint before recommendation sign-off
-
-### A9 Dashboard Designer
-- Status: `Updated`
-- New work:
-  - redesigned dashboard KPI hierarchy for reliability-first storytelling
-  - reduced emphasis on absolute PnL and increased risk-adjusted context
-- Weak spot:
-  - current dashboard is static HTML (no interactive drilldown yet)
-- Next:
-  - add compact trend visuals from latest weekly/campaign artifacts
-
-### A10 Statistical Reliability Analyst
-- Status: `Updated`
-- New work:
-  - integrated plausibility threshold into quant gate
-  - upgraded ranking to penalize statistically implausible return profiles
-- Weak spot:
-  - no bootstrap confidence intervals yet for each strategy profile
-- Next:
-  - add confidence band estimates for top candidate profiles
+- Prior uncommitted changes were mostly team/docs/process artifacts left after a scoped implementation commit.
+- Current cleanup aligns ownership, commands, and guardrails around one-minute data quality.
+- Release remains blocked until E7 guardrails are green on fresh artifacts.
 
 ## A1 Runtime Orchestrator
-
-- Status: `On Track`
-- Plan review verdict: `Approved with no blockers`
-- Completed:
-  - strict gate orchestration in `Makefile`
-  - added `daily-smoke` operational flow
-- Risks:
-  - long validation runtime can delay fast incident response
-- Next plan:
-  - optimize smoke path duration while preserving hard checks
+- Status: `In Progress`
+- Strength: deterministic Docker workflows.
+- Risk: stale container/code mismatch if rebuild discipline is skipped.
+- Next: enforce `make version-rebuild` at start of every E7 run.
 
 ## A2 Data and Signal Engineer
-
-- Status: `On Track`
-- Plan review verdict: `Approved, monitor exchange drift weekly`
-- Completed:
-  - implemented data freshness validation command (`make data-freshness`)
-- Risks:
-  - exchange endpoint behavior can drift unexpectedly
-- Next plan:
-  - add fallback provider support and retry telemetry summary
+- Status: `In Progress`
+- Strength: stable no-key ingestion path.
+- Risk: low-quality or stale minute coverage can silently degrade quant runs.
+- Next: run `make data-freshness ... TIMEFRAME=1m` before quant commands.
 
 ## A3 Modeling Engineer
-
-- Status: `On Track`
-- Plan review verdict: `Approved, quant calibration executed`
-- Completed:
-  - added regime-aware spread adjustment in realtime paper loop
-  - completed quant strategy lab and selected `trend_shield` as robust profile
-- Risks:
-  - regime thresholds need calibration across assets
-- Next plan:
-  - tune thresholds using rolling monthly data and compare against static mode
-  - extend regime logic to asset-specific thresholds
+- Status: `In Progress`
+- Strength: bounded profile generation across families.
+- Risk: aggressive profile tails can inflate risk-adjusted metrics.
+- Next: tighten 1m parameter priors and document bounds.
 
 ## A4 Backtest and Risk Engineer
-
-- Status: `On Track`
-- Plan review verdict: `Approved, add more real-data stress scenarios`
-- Completed:
-  - added risk calibration scenario sweep (`make risk-calibration`)
-  - validated walk-forward strict pass with quant-selected preset
-- Risks:
-  - scenario set currently synthetic-first; needs more real-data stress cases
-- Next plan:
-  - add real-data calibration scenarios from latest klines windows
+- Status: `In Progress`
+- Strength: execution realism fields integrated (slippage/latency/impact/adverse).
+- Risk: recommendation can still look overly smooth in some windows.
+- Next: publish execution realism decomposition note in E7 report.
 
 ## A5 QA and Integration Engineer
-
-- Status: `On Track`
-- Plan review verdict: `Approved, enforce template usage in weekly ops`
-- Completed:
-  - added triage template and weekly gate review template
-- Risks:
-  - template adoption must be enforced consistently
-- Next plan:
-  - integrate templates into weekly operational cadence and reviews
+- Status: `In Progress`
+- Strength: consistency and guardrail checks integrated.
+- Risk: false confidence if dashboards are generated from stale sources.
+- Next: keep release blocked on guardrail + consistency pair.
 
 ## A6 Documentation Architect
-
-- Status: `On Track`
-- Plan review verdict: `Approved, strict owner-review policy active`
-- Completed:
-  - synchronized docs governance and strict ownership rules
-  - aligned docs with latest reliability status
-  - packaged stakeholder analytics dashboard narrative and output links
-- Risks:
-  - risk of drift if non-owner edits docs without review
-- Next plan:
-  - enforce owner-review rule on every docs-affecting change
+- Status: `In Progress`
+- Strength: documentation map is complete.
+- Risk: command drift across README/guide/workboard.
+- Next: standardize on `make production-grade-step` for E7 operations.
 
 ## A7 Quant Researcher
-
-- Status: `On Track`
-- Plan review verdict: `Approved, maintain weekly reporting cadence`
-- Completed:
-  - maintained walk-forward strict gate passing profile
-  - added weekly reliability report generator (`make weekly-report`)
-  - executed new quant experiments (`make quant-experiments`) and ranked strategies by robustness
-  - collaborated on dashboard analytics metrics and strategy story
-- Risks:
-  - strategy robustness can degrade under regime shifts
-- Next plan:
-  - publish weekly rolling report with drift deltas and recommendation
-  - track trend-shield drift versus inventory-tight as backup profile
+- Status: `In Progress`
+- Strength: top-20 deep validation flow in place.
+- Risk: insufficient symbol/regime breadth for promotion confidence.
+- Next: deep-validate top set on 1m and add ETH follow-up run.
 
 ## A8 Project Manager
+- Status: `In Progress`
+- Strength: clear stop/go governance.
+- Risk: pressure to advance without all blockers green.
+- Next: enforce explicit no-go when any E7 blocker fails.
 
-- Status: `On Track`
-- Plan review verdict: `Approved, enforce P0 closure SLA`
-- Completed:
-  - consolidated strict plan and responsibilities for A1-A8
-  - launched realization step-up workflow (`make realization-step`)
-  - coordinated all-team system check before dashboard release
-- Risks:
-  - concurrent priorities can dilute focus on P0 reliability items
-- Next plan:
-  - enforce weekly gate review and close P0 blockers within 7 days
+## A9 Dashboard Designer
+- Status: `In Progress`
+- Strength: readable stakeholder hierarchy and team evidence section.
+- Risk: missing data previously appeared as `0`, causing misinterpretation.
+- Next: render missing coverage/execution metrics as `n/a` and keep clarity first.
+
+## A10 Statistical Reliability Analyst
+- Status: `In Progress`
+- Strength: plausibility-aware gates and robust scoring.
+- Risk: overfitting risk remains if pass-rate and tail metrics are interpreted loosely.
+- Next: keep strict reject policy for unrealistic Sharpe/Sortino/Calmar and quality anomalies.
+
+## A11 Cybersecurity and Platform Security Engineer
+- Status: `In Progress`
+- Strength: secure dashboard serving path enforced.
+- Risk: accidental fallback to unsafe local HTTP serving.
+- Next: keep serving hardening as release blocker and verify in each cycle.
+
+## E7 Exit Criteria
+
+1. `make production-grade-step` completes with pass status on guardrails and consistency.
+2. Dashboard reflects latest artifacts and shows valid minute data coverage.
+3. PM issues explicit go/no-go note with all blockers checked.

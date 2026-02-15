@@ -1,167 +1,147 @@
-# Team Action Plan (Strict) - A1 to A10
+# Team Action Plan (Strict) - A1 to A11
 
-Planning window: `2026-02-13` to `2026-03-13`
+Planning window: `2026-02-15` to `2026-03-15`
 
 ## Objective
 
-Keep MVP reliably green in paper mode for repeated weekly cycles, with strict gates and no documentation/runtime drift.
+Move from demo-grade quant evidence to production-grade paper trading readiness under strict one-minute data and execution realism controls.
 
 ## Global Non-Negotiable Gates
 
 1. `make validate` must pass.
-2. `make campaign N=10` must stay profitable on average.
-3. `make research-budgets EXCHANGE=binance SYMBOL=BTC/USDT` must produce readiness artifacts.
-4. `make walk-forward EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30` must pass in strict mode.
+2. `make walk-forward EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m DAYS=30` must pass.
+3. `make release-guardrails` must pass.
+4. `make consistency-check` must pass.
 5. `PAPER_ONLY=1` must remain enabled.
+
+## Strict Metric Contract (Release Guardrails)
+
+Command:
+
+```bash
+make release-guardrails
+```
+
+Hard thresholds:
+
+1. Campaign:
+- mean `total_pnl >= 0`
+- mean `sharpe_ratio >= 0.50`
+
+2. Walk-forward:
+- `gate.pass = true`
+- `hard_fail_windows = 0`
+- `pass_rate >= 0.60`
+
+3. Weekly reliability:
+- `status = pass`
+
+4. Quant recommendation:
+- `gate_pass = true`
+- `max_drawdown_pct <= 0.40`
+- `cvar_95_pct <= 0.03`
+- `sortino_ratio >= 0.20`
+- `pass_rate >= 0.65`
+- `fill_ratio >= 0.20`
+- `execution_cost_bps <= 5.0`
+- `realized_edge_bps <= 12.0`
+- `total_return_pct <= 0.25`
+
+5. One-minute data quality:
+- quant `meta.timeframe == 1m`
+- `data_profile.rows >= 10000`
+- `interval_seconds_median` in `[50.0, 70.0]`
+- `start_utc` and `end_utc` must be present
+
+6. Dashboard security posture:
+- secure serving script exists
+- Makefile uses secure server path
+- bind host remains loopback-only
+- `python3 -m http.server` is not used for dashboard serving
+
+Policy:
+
+- Any red guardrail is release-blocking.
+- PM (`A8`) owns stop/go decision.
+- Statistical interpretation ownership: `A10`.
+- Artifact integrity ownership: `A5`.
 
 ## Team Plan by Agent
 
-1. `A1 Runtime Orchestrator`
-- Priority: `P0`
-- Scope: pipeline reliability and deterministic runtime behavior.
-- Deliverables:
-  - add one-command daily smoke target in `Makefile` (`validate + walk-forward strict + short realtime-paper`)
-  - ensure artifact timestamps and naming stay deterministic and parseable
-- KPI:
-  - smoke command success rate >= `95%` weekly
-- Done criteria:
-  - smoke command documented and used in weekly ops review
+1. `A1 Runtime Orchestrator` (`P0`)
+- Maintain deterministic Docker execution and image-rebuild discipline.
+- Deliverable: stable `make production-grade-step` flow.
 
-2. `A2 Data and Signal Engineer`
-- Priority: `P0`
-- Scope: robustness of public no-key market data ingestion.
-- Deliverables:
-  - fallback/retry policy for transient exchange failures
-  - data freshness checks for klines/orderbook/trades
-- KPI:
-  - ingestion failure rate <= `2%` weekly
-- Done criteria:
-  - failures auto-recover without manual restart in test runs
+2. `A2 Data and Signal Engineer` (`P0`)
+- Enforce one-minute freshness checks before quant runs.
+- Deliverable: no stale data profile in quant artifacts.
 
-3. `A3 Modeling Engineer`
-- Priority: `P1`
-- Scope: reduce regime sensitivity of quote behavior.
-- Deliverables:
-  - conservative regime switch logic (range/trend/volatile)
-  - parameter guardrails to prevent over-aggressive quoting
-- KPI:
-  - no single walk-forward window with drawdown > `35%`
-- Done criteria:
-  - regime switch logic documented and validated in backtest reports
+3. `A3 Modeling Engineer` (`P1`)
+- Keep strategy bounds realistic for 1m microstructure.
+- Deliverable: parameter bound note for expanded profile generation.
 
-4. `A4 Backtest and Risk Engineer`
-- Priority: `P0`
-- Scope: downside containment and execution realism.
-- Deliverables:
-  - extend slippage/fill calibration scenarios
-  - maintain strict risk overlays as default runtime profile
-- KPI:
-  - `hard_fail_windows = 0` in weekly walk-forward
-- Done criteria:
-  - updated risk benchmark attached to weekly report
+4. `A4 Backtest and Risk Engineer` (`P0`)
+- Audit slippage, latency, impact, and adverse-selection penalties.
+- Deliverable: risk note on execution realism and liquidation behavior.
 
-5. `A5 QA and Integration Engineer`
-- Priority: `P0`
-- Scope: regression safety and gate enforcement.
-- Deliverables:
-  - automated weekly gate run checklist and artifact verification
-  - failure triage template for red gates
-- KPI:
-  - mean time to diagnose gate failure <= `30 min`
-- Done criteria:
-  - checklist used for two consecutive weekly cycles
+5. `A5 QA and Integration Engineer` (`P0`)
+- Run blocker checks on every phase handoff.
+- Deliverable: green guardrail + consistency report pair.
 
-6. `A6 Documentation Architect` (Owner)
-- Priority: `P0`
-- Scope: strict documentation governance for humans and AI.
-- Deliverables:
-  - keep `README.md`, `docs/`, and `agent_ops/` synchronized with runtime defaults
-  - remove duplicated or conflicting statements immediately
-- KPI:
-  - docs/runtime mismatch count = `0`
-- Done criteria:
-  - all documentation acceptance checklist items remain green each week
+6. `A6 Documentation Architect` (`P0`, owner)
+- Keep README/docs/agent_ops synchronized with E7 commands and policy.
+- Deliverable: no command drift across docs.
 
-7. `A7 Quant Researcher`
-- Priority: `P0`
-- Scope: rolling reliability evaluation and recommendation.
-- Deliverables:
-  - weekly 30-day rolling research summary
-  - explicit go/no-go note for live-key readiness
-- KPI:
-  - weekly report published on time (`100%` cadence)
-- Done criteria:
-  - each report references latest campaign + walk-forward artifacts
+7. `A7 Quant Researcher` (`P0`)
+- Run deep top-20 validation on 1m data and compare stability metrics.
+- Deliverable: promoted candidate only if full deep pass.
 
-8. `A8 Project Manager`
-- Priority: `P0`
-- Scope: coordination, SLA, and decision control.
-- Deliverables:
-  - weekly release gate review
-  - enforce rollback criteria on any red gate
-- KPI:
-  - unresolved P0 action items older than `7 days` = `0`
-- Done criteria:
-  - stakeholder update published weekly with current gate status
+8. `A8 Project Manager` (`P0`)
+- Enforce no-skip phase gates.
+- Deliverable: explicit go/no-go note per phase.
 
-9. `A9 Dashboard Designer`
-- Priority: `P1`
-- Scope: stakeholder analytics presentation quality.
-- Deliverables:
-  - clear KPI hierarchy (status/gate/risk/return context)
-  - concise explanatory labels for non-quant stakeholders
-- KPI:
-  - dashboard ambiguity issues in review = `0`
-- Done criteria:
-  - stakeholder demo can be presented without ad-hoc metric clarification
+9. `A9 Dashboard Designer` (`P1`)
+- Keep dashboard modern, readable, and honest about missing data.
+- Deliverable: `n/a` rendering for missing coverage/execution sources.
 
-10. `A10 Statistical Reliability Analyst`
-- Priority: `P0`
-- Scope: statistical defensibility and anomaly detection.
-- Deliverables:
-  - plausibility constraints on strategy recommendation
-  - anomaly flagging for unrealistic return profiles
-- KPI:
-  - implausible-recommendation incidents = `0`
-- Done criteria:
-  - quant report includes explicit robustness and plausibility gates
+10. `A10 Statistical Reliability Analyst` (`P0`)
+- Own plausibility and statistical defensibility interpretation.
+- Deliverable: reject over-optimistic candidates even when raw return is high.
 
-## Risks and Mitigations
+11. `A11 Cybersecurity and Platform Security Engineer` (`P0`)
+- Guard local/demo serving exposure paths.
+- Deliverable: periodic serving hardening review note.
 
-1. Exchange API instability
-- Mitigation: A2 retry/fallback + A5 failure triage.
+## E7 Production Bridge Workflow
 
-2. Strategy drift in volatile regimes
-- Mitigation: A3 regime logic + A4 drawdown-first constraints.
+Use this command chain:
 
-3. Documentation drift
-- Mitigation: A6 owner-only docs governance with A5/A8 mandatory review.
+1. `make version-rebuild VERSION=e7-round1`
+2. `make data-freshness EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m`
+3. `make quant-experiments-1m EXCHANGE=binance SYMBOL=BTC/USDT DAYS=14 WINDOW_DAYS=2 MAX_WINDOWS=6 BUDGETS=5000,10000 VARIANTS=conservative,balanced,adaptive SEEDS=21,42,99 MAX_TOTAL_RETURN_PCT=0.25`
+4. `make quant-top20-deep-1m EXCHANGE=binance SYMBOL=BTC/USDT`
+5. `make release-guardrails`
+6. `make consistency-check`
+7. `make stakeholder-dashboard`
+8. `make publish-showcase`
 
-## Weekly Cadence
+Equivalent one-command target:
 
-1. Monday: run full gates and publish artifact links.
-2. Wednesday: review drift and adjust risk/model parameters.
-3. Friday: publish go/no-go status and next-week priorities.
+```bash
+make production-grade-step VERSION=e7-round1 EXCHANGE=binance SYMBOL=BTC/USDT
+```
 
-## Implementation Snapshot (Current)
+## E7 Acceptance
 
-Date: `2026-02-13`
+1. One-minute data coverage and interval checks pass in guardrails.
+2. Deep validation passes for all selected top-20 strategies.
+3. No dashboard security regression.
+4. Docs and command contract remain consistent.
+5. Dashboard is regenerated from latest artifacts.
 
-1. `A1`: `daily-smoke` implemented and passing.
-2. `A2`: data freshness check implemented (`make data-freshness`) and passing.
-3. `A3`: regime-aware spread adjustment added to paper realtime strategy.
-4. `A4`: risk calibration scenario sweep implemented (`make risk-calibration`).
-5. `A5`: failure triage and weekly gate review templates added.
-6. `A6`: strict docs governance reflected in team and workboard docs.
-7. `A7`: weekly reliability summary generator implemented (`make weekly-report`).
-8. `A8`: strict team execution plan and role accountability documented.
-9. `A9`: dashboard KPI hierarchy and stakeholder readability pass.
-10. `A10`: robust statistics plus plausibility controls integrated in quant pipeline.
+## Strategy Selection Policy (Reliability First)
 
-## Next Realization Step (Implemented)
-
-1. Quant exploration module added: `make quant-experiments`.
-2. New robust profile selected from experiments: `trend_shield` (budget 10k, gate pass).
-3. Runtime and walk-forward preset updated to quant-selected profile.
-4. Multisymbol paper shadow flow activated: `make paper-multisymbol SYMBOLS=BTC/USDT,ETH/USDT`.
-5. Combined step-up command added: `make realization-step`.
+1. Hard reject if any gate fails.
+2. Rank surviving candidates by robustness and stability, not raw return.
+3. Use raw return only as a tiebreaker after risk and stability checks.
+4. Keep strategy recommendation in paper-only mode until repeated E7 cycles remain green.

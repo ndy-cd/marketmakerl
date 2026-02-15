@@ -23,6 +23,8 @@
 - positive Sharpe
 - max drawdown not worse than `40%` of budget
 - strict walk-forward pass with no hard-fail windows
+- quant timeframe locked to `1m` for production-bridge evidence
+- non-empty minute coverage with interval sanity checks in release guardrails
 
 4. Live-key onboarding prerequisites:
 - all gates green in repeated runs
@@ -35,4 +37,5 @@
 make real-data-fetch EXCHANGE=binance SYMBOL=BTC/USDT
 make research-budgets EXCHANGE=binance SYMBOL=BTC/USDT
 make realtime-paper EXCHANGE=binance SYMBOL=BTC/USDT
+make production-grade-step VERSION=e7-round1 EXCHANGE=binance SYMBOL=BTC/USDT
 ```

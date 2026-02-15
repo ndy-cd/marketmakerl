@@ -15,6 +15,16 @@ def copy_text(src: str, dst: Path) -> None:
     dst.write_text(Path(src).read_text(encoding="utf-8"), encoding="utf-8")
 
 
+def rel(path: Optional[str]) -> str:
+    if not path:
+        return "n/a"
+    p = Path(path)
+    try:
+        return str(p.relative_to(Path.cwd()))
+    except ValueError:
+        return str(p)
+
+
 def main() -> int:
     dashboard_html = latest("artifacts/dashboard/*_stakeholder_dashboard.html")
     dashboard_json = latest("artifacts/dashboard/*_stakeholder_dashboard.json")
@@ -55,9 +65,16 @@ Generated: {datetime.now(timezone.utc).isoformat()}
 
 ## Source Artifacts
 
-- Quant experiments: `{quant_json}`
-- Weekly report: `{weekly_json}`
-- Dashboard (artifact): `{dashboard_html}`
+- Quant experiments: `{rel(quant_json)}`
+- Weekly report: `{rel(weekly_json)}`
+- Dashboard (artifact): `{rel(dashboard_html)}`
+
+## Security Posture (Dashboard Serving)
+
+- Local serving is loopback-only by default (`127.0.0.1`).
+- Directory listing is disabled.
+- Path traversal attempts are blocked.
+- Showcase root is constrained to `docs/showcase`.
 """
     (out_dir / "README.md").write_text(md, encoding="utf-8")
 

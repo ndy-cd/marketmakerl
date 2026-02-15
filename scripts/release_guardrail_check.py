@@ -25,6 +25,11 @@ THRESHOLDS = {
     "quant_max_sortino": 6.0,
     "quant_max_calmar": 50.0,
     "quant_gate_pass_ratio_max": 0.90,
+    "quant_required_timeframe": "1m",
+    "quant_min_total_cases": 20,
+    "quant_min_data_rows": 10000,
+    "quant_interval_seconds_median_min": 50.0,
+    "quant_interval_seconds_median_max": 70.0,
 }
 
 
@@ -37,6 +42,39 @@ def read_json(path: Optional[str]) -> Dict[str, Any]:
     if not path:
         return {}
     return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def _as_float(value: Any, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _as_int(value: Any, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def extract_data_profile(quant: Dict[str, Any]) -> Dict[str, Any]:
+    meta = quant.get("meta", {}) or {}
+    profile = (meta.get("data_profile") or quant.get("minute_data_coverage") or {})
+    return {
+        "rows": _as_int(profile.get("rows", profile.get("row_count", 0)), 0),
+        "start_utc": str(profile.get("start_utc", profile.get("start", "")) or ""),
+        "end_utc": str(profile.get("end_utc", profile.get("end", "")) or ""),
+        "interval_seconds_median": _as_float(
+            profile.get("interval_seconds_median", profile.get("median_interval_seconds", 0.0))
+        ),
+        "interval_seconds_p05": _as_float(
+            profile.get("interval_seconds_p05", profile.get("p05_interval_seconds", 0.0))
+        ),
+        "interval_seconds_p95": _as_float(
+            profile.get("interval_seconds_p95", profile.get("p95_interval_seconds", 0.0))
+        ),
+    }
 
 
 def dashboard_security_checks() -> Dict[str, Any]:
@@ -93,6 +131,12 @@ def main() -> int:
     quant_realized_edge_bps = float(rec.get("realized_edge_bps", 999.0))
     quant_total_cases = int(quant.get("total_cases", 0) or 0)
     quant_gate_pass_count = int(quant.get("gate_pass_count", 0) or 0)
+    quant_timeframe = str((quant.get("meta", {}) or {}).get("timeframe", "")).strip()
+    data_profile = extract_data_profile(quant)
+    data_rows = int(data_profile.get("rows", 0) or 0)
+    data_start_utc = str(data_profile.get("start_utc", "") or "")
+    data_end_utc = str(data_profile.get("end_utc", "") or "")
+    interval_seconds_median = float(data_profile.get("interval_seconds_median", 0.0) or 0.0)
     quant_gate_pass_ratio = (
         quant_gate_pass_count / quant_total_cases
         if quant_total_cases > 0
@@ -135,6 +179,21 @@ def main() -> int:
             quant_gate_pass_ratio <= THRESHOLDS["quant_gate_pass_ratio_max"],
             quant_gate_pass_ratio,
         ),
+        ("quant_timeframe_is_1m", quant_timeframe == THRESHOLDS["quant_required_timeframe"], quant_timeframe),
+        ("quant_total_cases_min", quant_total_cases >= THRESHOLDS["quant_min_total_cases"], quant_total_cases),
+        ("quant_data_rows_min", data_rows >= THRESHOLDS["quant_min_data_rows"], data_rows),
+        ("quant_data_start_present", bool(data_start_utc), data_start_utc),
+        ("quant_data_end_present", bool(data_end_utc), data_end_utc),
+        (
+            "quant_interval_seconds_median_min",
+            interval_seconds_median >= THRESHOLDS["quant_interval_seconds_median_min"],
+            interval_seconds_median,
+        ),
+        (
+            "quant_interval_seconds_median_max",
+            interval_seconds_median <= THRESHOLDS["quant_interval_seconds_median_max"],
+            interval_seconds_median,
+        ),
         (
             "quant_total_return_pct",
             quant_total_return <= THRESHOLDS["quant_max_total_return_pct"],
@@ -164,6 +223,7 @@ def main() -> int:
             "quant": quant_path,
         },
         "checks": [{"name": n, "ok": ok, "value": v} for n, ok, v in checks],
+        "quant_data_profile": data_profile,
         "dashboard_security": dashboard_security,
         "failed_checks": failed,
     }

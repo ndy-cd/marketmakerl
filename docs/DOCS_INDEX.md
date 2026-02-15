@@ -13,7 +13,7 @@ MVP management:
 2. `docs/MVP_SIGNOFF_CHECKLIST.md` - release sign-off checklist.
 3. `docs/STAKEHOLDER_MVP_BRIEF.md` - stakeholder-facing summary.
 4. `agent_ops/TEAM_REVIEW_ACTION_PLAN.md` - team strengths/weaknesses and action plan.
-5. `agent_ops/TEAM_ACTION_PLAN_STRICT.md` - strict 30-day execution plan for A1-A8.
+5. `agent_ops/TEAM_ACTION_PLAN_STRICT.md` - strict 30-day execution plan for A1-A11.
 
 Supporting references:
 
@@ -29,3 +29,4 @@ Supporting references:
 10. `artifacts/dashboard/latest_stakeholder_dashboard.html` - latest stakeholder dashboard view.
 11. `docs/showcase/README.md` - stakeholder showcase snapshot and headline metrics.
 12. `agent_ops/PM_PROCESS_REVIEW.md` - project-manager process review and corrective controls.
+13. `agent_ops/team.yaml` - current cycle ownership map and E7 production-bridge plan.

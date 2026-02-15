@@ -47,7 +47,7 @@ DASHBOARD_PORT ?= 8000
 DASHBOARD_FILE ?= docs/showcase/stakeholder_dashboard.html
 VERSION ?= dev
 
-.PHONY: help build version-rebuild run run-backtest run-live test test-unit test-integration validate live-guard compose-config campaign real-data-fetch analyze-last-month research-budgets walk-forward mvp-launch realtime-paper realtime-live daily-smoke data-freshness risk-calibration weekly-report quant-experiments quant-experiments-1k quant-top20-deep quant-experiments-1m quant-top20-deep-1m release-guardrails epoch-3 epoch-4 paper-multisymbol realization-step stakeholder-dashboard consistency-check publish-showcase dashboard-local dashboard-open dashboard-serve dashboard-serve-auto dashboard-locoal deploy-server
+.PHONY: help build version-rebuild run run-backtest run-live test test-unit test-integration validate live-guard compose-config campaign real-data-fetch analyze-last-month research-budgets walk-forward mvp-launch realtime-paper realtime-live daily-smoke data-freshness risk-calibration weekly-report quant-experiments quant-experiments-1k quant-top20-deep quant-experiments-1m quant-top20-deep-1m release-guardrails epoch-3 epoch-4 paper-multisymbol realization-step production-grade-step stakeholder-dashboard consistency-check publish-showcase dashboard-local dashboard-open dashboard-serve dashboard-serve-auto dashboard-locoal deploy-server
 
 help:
 	@echo "Targets:"
@@ -85,6 +85,7 @@ help:
 	@echo "  make epoch-4            - New team iteration (version rebuild + deeper quant wave + dashboard)"
 	@echo "  make paper-multisymbol  - Run paper quote loop for symbols in SYMBOLS"
 	@echo "  make realization-step   - Quant experiments + weekly report + multisymbol paper run"
+	@echo "  make production-grade-step - E7 minute-data production-bridge workflow with strict blockers"
 	@echo "  make stakeholder-dashboard - Build stakeholder analytics dashboard from latest artifacts"
 	@echo "  make consistency-check   - PM product consistency check (docs/commands/contracts)"
 	@echo "  make publish-showcase    - Publish latest dashboard snapshot into docs/showcase"
@@ -151,10 +152,10 @@ analyze-last-month:
 	$(COMPOSE) run --rm agents python3 scripts/analyze_last_month_strategy.py --exchange $(EXCHANGE) --symbol $(SYMBOL) --timeframe $(TIMEFRAME) --days $(DAYS) --batch-limit $(BATCH_LIMIT) --initial-capital 10000 --budget-tiers 2500,5000,10000 --drawdown-fail-pct 0.40 --max-combinations $(MAX_COMBINATIONS)
 
 research-budgets:
-	$(MAKE) analyze-last-month TIMEFRAME=15m DAYS=30 MAX_COMBINATIONS=24
+	$(MAKE) analyze-last-month TIMEFRAME=$(TIMEFRAME) DAYS=30 MAX_COMBINATIONS=24
 
 walk-forward:
-	$(COMPOSE) run --rm agents python3 scripts/walk_forward_gate.py --exchange $(EXCHANGE) --symbol $(SYMBOL) --timeframe 15m --days $(DAYS) --strict
+	$(COMPOSE) run --rm agents python3 scripts/walk_forward_gate.py --exchange $(EXCHANGE) --symbol $(SYMBOL) --timeframe $(TIMEFRAME) --days $(DAYS) --strict
 
 mvp-launch:
 	$(MAKE) validate
@@ -238,6 +239,16 @@ realization-step:
 	$(MAKE) quant-experiments EXCHANGE=$(EXCHANGE) SYMBOL=$(SYMBOL) DAYS=$(DAYS)
 	$(MAKE) weekly-report
 	$(MAKE) paper-multisymbol EXCHANGE=$(EXCHANGE) SYMBOLS=$(SYMBOLS) TIMEFRAME=1m ITERATIONS=5 POLL_SECONDS=1
+
+production-grade-step:
+	$(MAKE) version-rebuild VERSION=$(VERSION)
+	$(MAKE) data-freshness EXCHANGE=$(EXCHANGE) SYMBOL=$(SYMBOL) TIMEFRAME=1m
+	$(MAKE) quant-experiments-1m EXCHANGE=$(EXCHANGE) SYMBOL=$(SYMBOL) DAYS=14 WINDOW_DAYS=2 MAX_WINDOWS=6 BUDGETS=5000,10000 VARIANTS=conservative,balanced,adaptive SEEDS=21,42,99 MAX_TOTAL_RETURN_PCT=0.25
+	$(MAKE) quant-top20-deep-1m EXCHANGE=$(EXCHANGE) SYMBOL=$(SYMBOL)
+	$(MAKE) release-guardrails
+	$(MAKE) consistency-check
+	$(MAKE) stakeholder-dashboard
+	$(MAKE) publish-showcase
 
 stakeholder-dashboard:
 	$(COMPOSE) run --rm agents python3 scripts/build_stakeholder_dashboard.py

@@ -18,6 +18,7 @@ make validate
 make campaign N=10
 make research-budgets EXCHANGE=binance SYMBOL=BTC/USDT
 make realtime-paper EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m ITERATIONS=20
+make production-grade-step VERSION=e7-round1 EXCHANGE=binance SYMBOL=BTC/USDT
 ```
 
 ## 3) Safety Policy
@@ -48,6 +49,7 @@ make realtime-paper EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m ITERATIONS=20
 
 4. Runtime orchestration:
 - `scripts/run_agents.py`, `scripts/run_realtime_strategy.py`, `Makefile`, Docker Compose.
+- Docker Compose mounts the full repository into `/app` so container execution uses latest local `src/` and `scripts/` code.
 
 5. Outputs:
 - All artifacts under `artifacts/`.
@@ -83,9 +85,9 @@ Mandatory before any MVP milestone:
 make validate
 make campaign N=10
 make research-budgets EXCHANGE=binance SYMBOL=BTC/USDT
-make walk-forward EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30
+make walk-forward EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m DAYS=30
 make daily-smoke EXCHANGE=binance SYMBOL=BTC/USDT ITERATIONS=2 POLL_SECONDS=1
-make quant-experiments EXCHANGE=binance SYMBOL=BTC/USDT DAYS=60 WINDOW_DAYS=7 MAX_WINDOWS=6 BUDGETS=5000,10000,15000 VARIANTS=conservative,balanced,adaptive SEEDS=42,99 MAX_TOTAL_RETURN_PCT=1.0
+make quant-experiments EXCHANGE=binance SYMBOL=BTC/USDT DAYS=60 WINDOW_DAYS=7 MAX_WINDOWS=6 BUDGETS=5000,10000,15000 VARIANTS=conservative,balanced,adaptive SEEDS=42,99 MAX_TOTAL_RETURN_PCT=0.25
 ```
 
 Research gate checks:
@@ -95,17 +97,19 @@ Research gate checks:
 - Tail-risk control: `cvar_95_pct` below configured threshold.
 - Plausibility control: `total_return_pct` must be within configured cap.
 - Walk-forward pass rate above configured threshold with no hard drawdown breaches.
+- Minute-data quality control: quant artifact must confirm `TIMEFRAME=1m`, non-empty row coverage, and sane interval profile.
 
 ## 7) Current MVP Readiness
 
 - Platform reliability (Docker/test/runtime): operational.
 - Real data ingestion (public endpoints): operational.
 - Quant reliability: strict walk-forward gate currently passes with reliability preset.
-- Quant exploration: new strategy lab recommends `trend_shield` as current best robust profile.
+- Quant exploration: latest broad quant epoch (`1005` cases) recommends `defensive_core__grid013` under current gates; deep rerun should confirm promotion.
+- Production bridge: `make production-grade-step` is the canonical E7 path for 1m data quality + release blockers.
 - Realization step-up: multisymbol paper shadow flow (`BTC/USDT`, `ETH/USDT`) operational.
 - Decision: continue in paper-only mode.
 
 ## 8) Team Roles
 
 - Ownership map and current status: `agent_ops/team.yaml` and `agent_ops/WORKBOARD.md`.
-- Includes Quant Researcher (`A7`), Project Manager (`A8`), Dashboard Designer (`A9`), and Statistical Reliability Analyst (`A10`) roles.
+- Includes Quant Researcher (`A7`), Project Manager (`A8`), Dashboard Designer (`A9`), Statistical Reliability Analyst (`A10`), and Cybersecurity Engineer (`A11`) roles.

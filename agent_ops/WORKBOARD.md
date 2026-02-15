@@ -1,75 +1,57 @@
-# Agent Workboard (A1-A10)
+# Agent Workboard (A1-A11)
 
-Single shared board for MVP execution status.
+Single shared board for active execution and release blockers.
 
 ## Sprint Goal
 
-Stable paper-only MVP with clear technical and stakeholder documentation.
+Move from MVP research/demo posture to production-grade paper trading readiness with strict 1m data-quality gates.
 
-## Documentation Ownership (Strict)
+## Current Round: E7 Production Bridge
 
-- Owner: `A6 Documentation Architect` (single owner).
-- Mandatory reviewers: `A5 QA and Integration Engineer`, `A8 Project Manager`.
-- Rule: no docs PR/commit is accepted without owner approval and reviewer sign-off.
-- Scope: `README.md`, `docs/`, `agent_ops/` project-facing docs.
+- Status: `In Progress`
+- Why files were uncommitted:
+  - prior push intentionally scoped to runtime/backtest/dashboard implementation commit
+  - team/docs artifacts were left in working tree for coordinated cleanup
+- Canonical run command:
+  - `make production-grade-step VERSION=e7-round1 EXCHANGE=binance SYMBOL=BTC/USDT`
 
-## Status by Agent
+## Release-Blocking Conditions (No-Go if any fail)
 
-1. `A1 Runtime Orchestrator` - `Done`
-- Scope: runtime orchestration, Makefile, safety policy.
-- Result: paper-only lock enabled (`PAPER_ONLY=1`), live commands blocked.
+1. `make release-guardrails` must pass.
+2. `make consistency-check` must pass.
+3. Quant report must be `TIMEFRAME=1m`, with:
+- `rows >= 10000`
+- `median interval in [50s, 70s]`
+4. Dashboard serving security checks must pass:
+- loopback bind only
+- no directory listing
+- no path traversal
 
-2. `A2 Data and Signal Engineer` - `Done`
-- Scope: data ingestion and signal path.
-- Result: stable no-key flow for public CEX snapshots and klines.
+## E7 Execution Sequence
 
-3. `A3 Modeling Engineer` - `In Progress`
-- Scope: quote model behavior.
-- Focus: reliability-first preset tuning and regime adaptation.
+1. `make version-rebuild VERSION=e7-round1`
+2. `make data-freshness EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m`
+3. `make quant-experiments-1m EXCHANGE=binance SYMBOL=BTC/USDT DAYS=14 WINDOW_DAYS=2 MAX_WINDOWS=6 BUDGETS=5000,10000 VARIANTS=conservative,balanced,adaptive SEEDS=21,42,99 MAX_TOTAL_RETURN_PCT=0.25`
+4. `make quant-top20-deep-1m EXCHANGE=binance SYMBOL=BTC/USDT`
+5. `make release-guardrails`
+6. `make consistency-check`
+7. `make stakeholder-dashboard && make publish-showcase`
 
-4. `A4 Backtest and Risk Engineer` - `Done`
-- Scope: backtest realism and risk controls.
-- Result: strict walk-forward gate + reduced drawdown tail under reliability preset.
+## Ownership Snapshot
 
-5. `A5 QA and Integration Engineer` - `Done`
-- Scope: tests and integration.
-- Result: stable `make validate`, `make campaign`, `make test` workflows.
-
-6. `A6 Documentation Architect` - `Done`
-- Scope: docs structure and readability.
-- Result: strict docs ownership, compact English set, and gate-aligned guidance.
-
-7. `A7 Quant Researcher` - `Done`
-- Scope: quant readiness gate.
-- Result: budget-tier/strategy-format research, walk-forward gate, and readiness verdict.
-- Current result: reliability preset selected (`inventory_defensive_mm`) with strict gate pass.
-
-8. `A8 Project Manager` - `Done`
-- Scope: MVP milestone governance.
-- Focus: lock launch workflow and sign-off criteria.
-
-9. `A9 Dashboard Designer` - `Done`
-- Scope: stakeholder dashboard readability and narrative quality.
-- Result: dashboard refocused on robust statistics and decision-friendly KPI cards.
-
-10. `A10 Statistical Reliability Analyst` - `Done`
-- Scope: quant metric reliability and plausibility controls.
-- Result: experiment gates include robust risk metrics plus implausible-return filter.
-
-## Hard Gates
-
-```bash
-make validate
-make campaign N=10
-make research-budgets EXCHANGE=binance SYMBOL=BTC/USDT
-make walk-forward EXCHANGE=binance SYMBOL=BTC/USDT DAYS=30
-make daily-smoke EXCHANGE=binance SYMBOL=BTC/USDT
-```
+1. `A1 Runtime Orchestrator` - Docker determinism and version rebuild discipline.
+2. `A2 Data and Signal Engineer` - one-minute freshness and schema health.
+3. `A3 Modeling Engineer` - safe parameter bounds for 1m runs.
+4. `A4 Backtest and Risk Engineer` - execution realism and liquidation behavior.
+5. `A5 QA and Integration Engineer` - guardrails and consistency gates.
+6. `A6 Documentation Architect` - command/docs contract and cleanup.
+7. `A7 Quant Researcher` - top-20 deep validation and strategy comparison.
+8. `A8 Project Manager` - stop/go control and blocker enforcement.
+9. `A9 Dashboard Designer` - readable KPI hierarchy with explicit missing-data handling.
+10. `A10 Statistical Reliability Analyst` - plausibility and statistical defensibility.
+11. `A11 Cybersecurity Engineer` - serving hardening and exposure checks.
 
 ## Current Decision
 
-- MVP remains `paper-only`.
-- Paper launch can proceed with the reliability preset and strict walk-forward gate.
-- Do not connect exchange API keys until paper operations remain stable in repeated cycles.
-- Active strict execution plan: `agent_ops/TEAM_ACTION_PLAN_STRICT.md`.
-- Active per-agent report set: `agent_ops/TEAM_MEMBER_REPORTS.md`.
+- System remains `paper-only`.
+- No promotion toward live trading until E7 release blockers are green for repeated cycles.
