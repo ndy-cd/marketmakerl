@@ -49,8 +49,11 @@ make data-freshness EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m
 make weekly-report
 make quant-experiments EXCHANGE=binance SYMBOL=BTC/USDT DAYS=60 WINDOW_DAYS=7 MAX_WINDOWS=6 BUDGETS=5000,10000,15000 VARIANTS=conservative,balanced,adaptive SEEDS=42,99 MAX_TOTAL_RETURN_PCT=0.25
 make quant-experiments-1k EXCHANGE=binance SYMBOL=BTC/USDT
+make quant-experiments-3k-1m EXCHANGE=binance SYMBOL=BTC/USDT
+make quant-experiments-6k-1m-multisymbol EXCHANGE=binance SYMBOLS=BTC/USDT,ETH/USDT
 make quant-top20-deep EXCHANGE=binance SYMBOL=BTC/USDT
 make production-grade-step VERSION=e7-round1 EXCHANGE=binance SYMBOL=BTC/USDT
+make production-grade-step-xl VERSION=e7-xl-round1 EXCHANGE=binance
 make release-guardrails
 make version-rebuild VERSION=e4
 make epoch-3 EXCHANGE=binance SYMBOL=BTC/USDT

@@ -8,12 +8,16 @@ Move from MVP research/demo posture to production-grade paper trading readiness 
 
 ## Current Round: E7 Production Bridge
 
-- Status: `In Progress`
+- Status: `Ready To Run (XL queued)`
 - Why files were uncommitted:
   - prior push intentionally scoped to runtime/backtest/dashboard implementation commit
   - team/docs artifacts were left in working tree for coordinated cleanup
 - Canonical run command:
   - `make production-grade-step VERSION=e7-round1 EXCHANGE=binance SYMBOL=BTC/USDT`
+- Extended run command (higher experiment volume):
+  - `make production-grade-step-xl VERSION=e7-xl-round1 EXCHANGE=binance`
+- Note:
+  - XL run was prepared but not executed in this turn after user declined unsandboxed Docker build escalation.
 
 ## Release-Blocking Conditions (No-Go if any fail)
 
@@ -37,6 +41,18 @@ Move from MVP research/demo posture to production-grade paper trading readiness 
 6. `make consistency-check`
 7. `make stakeholder-dashboard && make publish-showcase`
 
+## E7 XL Execution Sequence (New Level)
+
+1. `make version-rebuild VERSION=e7-xl-round1`
+2. `make data-freshness EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m`
+3. `make data-freshness EXCHANGE=binance SYMBOL=ETH/USDT TIMEFRAME=1m`
+4. `make quant-experiments-6k-1m-multisymbol EXCHANGE=binance SYMBOLS=BTC/USDT,ETH/USDT`
+5. `make quant-experiments-3k-1m EXCHANGE=binance SYMBOL=BTC/USDT`
+6. `make quant-top20-deep-1m EXCHANGE=binance SYMBOL=BTC/USDT`
+7. `make release-guardrails`
+8. `make consistency-check`
+9. `make stakeholder-dashboard && make publish-showcase`
+
 ## Ownership Snapshot
 
 1. `A1 Runtime Orchestrator` - Docker determinism and version rebuild discipline.
@@ -55,3 +71,4 @@ Move from MVP research/demo posture to production-grade paper trading readiness 
 
 - System remains `paper-only`.
 - No promotion toward live trading until E7 release blockers are green for repeated cycles.
+- Current guardrails remain red until fresh 1m XL artifacts are generated.

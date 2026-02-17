@@ -25,8 +25,18 @@ VARIANTS ?= conservative,balanced,adaptive
 SEEDS ?= 42,99
 BUDGETS ?= 5000,10000,15000
 MAX_TOTAL_RETURN_PCT ?= 0.25
+DRAWDOWN_FAIL_PCT ?= 0.10
+MIN_PASS_RATE ?= 0.65
+MIN_SORTINO ?= 0.20
+MAX_CVAR95_PCT ?= 0.03
+MIN_WORST_SEED_RETURN_PCT ?= -0.10
+MAX_WORST_SEED_DRAWDOWN_PCT ?= 0.05
 MIN_FILL_RATIO ?= 0.10
 MAX_EXECUTION_COST_BPS ?= 12.0
+MAX_REALIZED_EDGE_BPS ?= 12.0
+MAX_SHARPE ?= 4.0
+MAX_SORTINO ?= 6.0
+MAX_CALMAR ?= 50.0
 BASE_SLIPPAGE_BPS ?= 1.2
 SLIPPAGE_VOL_SCALE ?= 0.025
 MARKET_IMPACT_BPS ?= 0.8
@@ -47,7 +57,7 @@ DASHBOARD_PORT ?= 8000
 DASHBOARD_FILE ?= docs/showcase/stakeholder_dashboard.html
 VERSION ?= dev
 
-.PHONY: help build version-rebuild run run-backtest run-live test test-unit test-integration validate live-guard compose-config campaign real-data-fetch analyze-last-month research-budgets walk-forward mvp-launch realtime-paper realtime-live daily-smoke data-freshness risk-calibration weekly-report quant-experiments quant-experiments-1k quant-top20-deep quant-experiments-1m quant-top20-deep-1m release-guardrails epoch-3 epoch-4 paper-multisymbol realization-step production-grade-step stakeholder-dashboard consistency-check publish-showcase dashboard-local dashboard-open dashboard-serve dashboard-serve-auto dashboard-locoal deploy-server
+.PHONY: help build version-rebuild run run-backtest run-live test test-unit test-integration validate live-guard compose-config campaign real-data-fetch analyze-last-month research-budgets walk-forward mvp-launch realtime-paper realtime-live daily-smoke data-freshness risk-calibration weekly-report quant-experiments quant-experiments-1k quant-experiments-3k-1m quant-experiments-6k-1m-multisymbol quant-top20-deep quant-experiments-1m quant-top20-deep-1m release-guardrails epoch-3 epoch-4 paper-multisymbol realization-step production-grade-step production-grade-step-xl stakeholder-dashboard consistency-check publish-showcase dashboard-local dashboard-open dashboard-serve dashboard-serve-auto dashboard-locoal deploy-server
 
 help:
 	@echo "Targets:"
@@ -77,6 +87,8 @@ help:
 	@echo "  make weekly-report      - Build weekly reliability summary from latest artifacts"
 	@echo "  make quant-experiments  - Run quant strategy experiments with robust/plausibility stats"
 	@echo "  make quant-experiments-1k - Run expanded >=1000-case strategy/variant sweep"
+	@echo "  make quant-experiments-3k-1m - Run expanded ~3000-case 1-minute sweep on one symbol"
+	@echo "  make quant-experiments-6k-1m-multisymbol - Run two 3k 1-minute sweeps across SYMBOLS"
 	@echo "  make quant-top20-deep   - Deep validate top 20 unique strategies from latest quant run"
 	@echo "  make quant-experiments-1m - Convenience alias for 1-minute quant experiments"
 	@echo "  make quant-top20-deep-1m  - Deep top-20 validation on 1-minute timeframe"
@@ -86,6 +98,7 @@ help:
 	@echo "  make paper-multisymbol  - Run paper quote loop for symbols in SYMBOLS"
 	@echo "  make realization-step   - Quant experiments + weekly report + multisymbol paper run"
 	@echo "  make production-grade-step - E7 minute-data production-bridge workflow with strict blockers"
+	@echo "  make production-grade-step-xl - E7 extended workflow: 6k multisymbol + deep validation + release checks"
 	@echo "  make stakeholder-dashboard - Build stakeholder analytics dashboard from latest artifacts"
 	@echo "  make consistency-check   - PM product consistency check (docs/commands/contracts)"
 	@echo "  make publish-showcase    - Publish latest dashboard snapshot into docs/showcase"
@@ -186,17 +199,26 @@ weekly-report:
 	$(COMPOSE) run --rm agents python3 scripts/weekly_reliability_report.py
 
 quant-experiments:
-	$(COMPOSE) run --rm agents python3 scripts/quant_strategy_experiments.py --exchange $(EXCHANGE) --symbol $(SYMBOL) --timeframe $(TIMEFRAME) --days $(DAYS) --batch-limit $(BATCH_LIMIT) --window-days $(WINDOW_DAYS) --max-windows $(MAX_WINDOWS) --budgets $(BUDGETS) --variants $(VARIANTS) --seeds $(SEEDS) --max-total-return-pct $(MAX_TOTAL_RETURN_PCT) --min-fill-ratio $(MIN_FILL_RATIO) --max-execution-cost-bps $(MAX_EXECUTION_COST_BPS) --base-slippage-bps $(BASE_SLIPPAGE_BPS) --slippage-volatility-scale $(SLIPPAGE_VOL_SCALE) --market-impact-bps $(MARKET_IMPACT_BPS) --latency-ms $(LATENCY_MS) --latency-penalty-bps-per-100ms $(LATENCY_PENALTY_BPS_PER_100MS) --adverse-selection-bps $(ADVERSE_SELECTION_BPS) --fill-probability-floor $(FILL_PROBABILITY_FLOOR) --fill-probability-ceiling $(FILL_PROBABILITY_CEILING)
+	$(COMPOSE) run --rm agents python3 scripts/quant_strategy_experiments.py --exchange $(EXCHANGE) --symbol $(SYMBOL) --timeframe $(TIMEFRAME) --days $(DAYS) --batch-limit $(BATCH_LIMIT) --window-days $(WINDOW_DAYS) --max-windows $(MAX_WINDOWS) --budgets $(BUDGETS) --variants $(VARIANTS) --seeds $(SEEDS) --drawdown-fail-pct $(DRAWDOWN_FAIL_PCT) --min-pass-rate $(MIN_PASS_RATE) --min-sortino $(MIN_SORTINO) --max-cvar95-pct $(MAX_CVAR95_PCT) --max-total-return-pct $(MAX_TOTAL_RETURN_PCT) --min-worst-seed-return-pct $(MIN_WORST_SEED_RETURN_PCT) --max-worst-seed-drawdown-pct $(MAX_WORST_SEED_DRAWDOWN_PCT) --max-sharpe $(MAX_SHARPE) --max-sortino $(MAX_SORTINO) --max-calmar $(MAX_CALMAR) --min-fill-ratio $(MIN_FILL_RATIO) --max-execution-cost-bps $(MAX_EXECUTION_COST_BPS) --max-realized-edge-bps $(MAX_REALIZED_EDGE_BPS) --base-slippage-bps $(BASE_SLIPPAGE_BPS) --slippage-volatility-scale $(SLIPPAGE_VOL_SCALE) --market-impact-bps $(MARKET_IMPACT_BPS) --latency-ms $(LATENCY_MS) --latency-penalty-bps-per-100ms $(LATENCY_PENALTY_BPS_PER_100MS) --adverse-selection-bps $(ADVERSE_SELECTION_BPS) --fill-probability-floor $(FILL_PROBABILITY_FLOOR) --fill-probability-ceiling $(FILL_PROBABILITY_CEILING)
 
 quant-experiments-1k:
-	$(COMPOSE) run --rm agents python3 scripts/quant_strategy_experiments.py --exchange $(EXCHANGE) --symbol $(SYMBOL) --timeframe $(TIMEFRAME) --days 30 --batch-limit $(BATCH_LIMIT) --window-days 5 --max-windows 1 --budgets 5000,10000,15000 --variant-mode expanded --profiles-per-family 67 --profile-seed 314159 --include-families defensive_core,inventory_tight,spread_capture,trend_shield,volatility_brake --seeds 42 --max-total-return-pct $(MAX_TOTAL_RETURN_PCT) --min-fill-ratio $(MIN_FILL_RATIO) --max-execution-cost-bps $(MAX_EXECUTION_COST_BPS) --base-slippage-bps $(BASE_SLIPPAGE_BPS) --slippage-volatility-scale $(SLIPPAGE_VOL_SCALE) --market-impact-bps $(MARKET_IMPACT_BPS) --latency-ms $(LATENCY_MS) --latency-penalty-bps-per-100ms $(LATENCY_PENALTY_BPS_PER_100MS) --adverse-selection-bps $(ADVERSE_SELECTION_BPS) --fill-probability-floor $(FILL_PROBABILITY_FLOOR) --fill-probability-ceiling $(FILL_PROBABILITY_CEILING)
+	$(COMPOSE) run --rm agents python3 scripts/quant_strategy_experiments.py --exchange $(EXCHANGE) --symbol $(SYMBOL) --timeframe $(TIMEFRAME) --days 30 --batch-limit $(BATCH_LIMIT) --window-days 5 --max-windows 1 --budgets 5000,10000,15000 --variant-mode expanded --profiles-per-family 67 --profile-seed 314159 --include-families defensive_core,inventory_tight,spread_capture,trend_shield,volatility_brake --seeds 42 --drawdown-fail-pct $(DRAWDOWN_FAIL_PCT) --min-pass-rate $(MIN_PASS_RATE) --min-sortino $(MIN_SORTINO) --max-cvar95-pct $(MAX_CVAR95_PCT) --max-total-return-pct $(MAX_TOTAL_RETURN_PCT) --min-worst-seed-return-pct $(MIN_WORST_SEED_RETURN_PCT) --max-worst-seed-drawdown-pct $(MAX_WORST_SEED_DRAWDOWN_PCT) --max-sharpe $(MAX_SHARPE) --max-sortino $(MAX_SORTINO) --max-calmar $(MAX_CALMAR) --min-fill-ratio $(MIN_FILL_RATIO) --max-execution-cost-bps $(MAX_EXECUTION_COST_BPS) --max-realized-edge-bps $(MAX_REALIZED_EDGE_BPS) --base-slippage-bps $(BASE_SLIPPAGE_BPS) --slippage-volatility-scale $(SLIPPAGE_VOL_SCALE) --market-impact-bps $(MARKET_IMPACT_BPS) --latency-ms $(LATENCY_MS) --latency-penalty-bps-per-100ms $(LATENCY_PENALTY_BPS_PER_100MS) --adverse-selection-bps $(ADVERSE_SELECTION_BPS) --fill-probability-floor $(FILL_PROBABILITY_FLOOR) --fill-probability-ceiling $(FILL_PROBABILITY_CEILING)
+
+quant-experiments-3k-1m:
+	$(COMPOSE) run --rm agents python3 scripts/quant_strategy_experiments.py --exchange $(EXCHANGE) --symbol $(SYMBOL) --timeframe 1m --days 30 --batch-limit $(BATCH_LIMIT) --window-days 3 --max-windows 10 --budgets 5000,10000,15000 --variant-mode expanded --profiles-per-family 200 --profile-seed 314159 --include-families defensive_core,inventory_tight,spread_capture,trend_shield,volatility_brake --seeds 21,42,99 --drawdown-fail-pct 0.10 --min-pass-rate 0.75 --min-sortino 0.30 --max-cvar95-pct 0.02 --max-total-return-pct 0.25 --min-worst-seed-return-pct -0.05 --max-worst-seed-drawdown-pct 0.04 --max-sharpe 4.0 --max-sortino 6.0 --max-calmar 50.0 --min-fill-ratio 0.20 --max-execution-cost-bps 5.0 --max-realized-edge-bps 12.0 --base-slippage-bps $(BASE_SLIPPAGE_BPS) --slippage-volatility-scale $(SLIPPAGE_VOL_SCALE) --market-impact-bps $(MARKET_IMPACT_BPS) --latency-ms $(LATENCY_MS) --latency-penalty-bps-per-100ms $(LATENCY_PENALTY_BPS_PER_100MS) --adverse-selection-bps $(ADVERSE_SELECTION_BPS) --fill-probability-floor $(FILL_PROBABILITY_FLOOR) --fill-probability-ceiling $(FILL_PROBABILITY_CEILING)
+
+quant-experiments-6k-1m-multisymbol:
+	@for sym in $$(echo "$(SYMBOLS)" | tr ',' ' '); do \
+		echo "[quant-experiments-6k-1m-multisymbol] $$sym"; \
+		$(MAKE) quant-experiments-3k-1m EXCHANGE=$(EXCHANGE) SYMBOL=$$sym; \
+	done
 
 quant-top20-deep:
 	@latest_csv=$$(ls -t artifacts/quant_experiments/*_quant_experiments.csv | head -n 1); \
 	if [ -z "$$latest_csv" ]; then echo "No quant CSV found under artifacts/quant_experiments"; exit 1; fi; \
 	echo "[quant-top20-deep] source=$$latest_csv"; \
 	$(COMPOSE) run --rm agents python3 scripts/prepare_top_strategies.py --quant-csv "$$latest_csv" --top-n 20 --output-file artifacts/quant_experiments/latest_top20_strategies.txt
-	$(COMPOSE) run --rm agents python3 scripts/quant_strategy_experiments.py --exchange $(EXCHANGE) --symbol $(SYMBOL) --timeframe $(TIMEFRAME) --days $(DEEP_DAYS) --batch-limit $(BATCH_LIMIT) --window-days $(DEEP_WINDOW_DAYS) --max-windows $(DEEP_MAX_WINDOWS) --budgets $(DEEP_BUDGETS) --variant-mode expanded --profiles-per-family 67 --profile-seed 314159 --include-families defensive_core,inventory_tight,spread_capture,trend_shield,volatility_brake --include-strategies-file artifacts/quant_experiments/latest_top20_strategies.txt --seeds $(DEEP_SEEDS) --max-total-return-pct $(MAX_TOTAL_RETURN_PCT) --min-fill-ratio $(MIN_FILL_RATIO) --max-execution-cost-bps $(MAX_EXECUTION_COST_BPS) --base-slippage-bps $(BASE_SLIPPAGE_BPS) --slippage-volatility-scale $(SLIPPAGE_VOL_SCALE) --market-impact-bps $(MARKET_IMPACT_BPS) --latency-ms $(LATENCY_MS) --latency-penalty-bps-per-100ms $(LATENCY_PENALTY_BPS_PER_100MS) --adverse-selection-bps $(ADVERSE_SELECTION_BPS) --fill-probability-floor $(FILL_PROBABILITY_FLOOR) --fill-probability-ceiling $(FILL_PROBABILITY_CEILING)
+	$(COMPOSE) run --rm agents python3 scripts/quant_strategy_experiments.py --exchange $(EXCHANGE) --symbol $(SYMBOL) --timeframe $(TIMEFRAME) --days $(DEEP_DAYS) --batch-limit $(BATCH_LIMIT) --window-days $(DEEP_WINDOW_DAYS) --max-windows $(DEEP_MAX_WINDOWS) --budgets $(DEEP_BUDGETS) --variant-mode expanded --profiles-per-family 67 --profile-seed 314159 --include-families defensive_core,inventory_tight,spread_capture,trend_shield,volatility_brake --include-strategies-file artifacts/quant_experiments/latest_top20_strategies.txt --seeds $(DEEP_SEEDS) --drawdown-fail-pct $(DRAWDOWN_FAIL_PCT) --min-pass-rate $(MIN_PASS_RATE) --min-sortino $(MIN_SORTINO) --max-cvar95-pct $(MAX_CVAR95_PCT) --max-total-return-pct $(MAX_TOTAL_RETURN_PCT) --min-worst-seed-return-pct $(MIN_WORST_SEED_RETURN_PCT) --max-worst-seed-drawdown-pct $(MAX_WORST_SEED_DRAWDOWN_PCT) --max-sharpe $(MAX_SHARPE) --max-sortino $(MAX_SORTINO) --max-calmar $(MAX_CALMAR) --min-fill-ratio $(MIN_FILL_RATIO) --max-execution-cost-bps $(MAX_EXECUTION_COST_BPS) --max-realized-edge-bps $(MAX_REALIZED_EDGE_BPS) --base-slippage-bps $(BASE_SLIPPAGE_BPS) --slippage-volatility-scale $(SLIPPAGE_VOL_SCALE) --market-impact-bps $(MARKET_IMPACT_BPS) --latency-ms $(LATENCY_MS) --latency-penalty-bps-per-100ms $(LATENCY_PENALTY_BPS_PER_100MS) --adverse-selection-bps $(ADVERSE_SELECTION_BPS) --fill-probability-floor $(FILL_PROBABILITY_FLOOR) --fill-probability-ceiling $(FILL_PROBABILITY_CEILING)
 
 quant-experiments-1m:
 	$(MAKE) quant-experiments TIMEFRAME=1m
@@ -245,6 +267,18 @@ production-grade-step:
 	$(MAKE) data-freshness EXCHANGE=$(EXCHANGE) SYMBOL=$(SYMBOL) TIMEFRAME=1m
 	$(MAKE) quant-experiments-1m EXCHANGE=$(EXCHANGE) SYMBOL=$(SYMBOL) DAYS=14 WINDOW_DAYS=2 MAX_WINDOWS=6 BUDGETS=5000,10000 VARIANTS=conservative,balanced,adaptive SEEDS=21,42,99 MAX_TOTAL_RETURN_PCT=0.25
 	$(MAKE) quant-top20-deep-1m EXCHANGE=$(EXCHANGE) SYMBOL=$(SYMBOL)
+	$(MAKE) release-guardrails
+	$(MAKE) consistency-check
+	$(MAKE) stakeholder-dashboard
+	$(MAKE) publish-showcase
+
+production-grade-step-xl:
+	$(MAKE) version-rebuild VERSION=$(VERSION)
+	$(MAKE) data-freshness EXCHANGE=$(EXCHANGE) SYMBOL=BTC/USDT TIMEFRAME=1m
+	$(MAKE) data-freshness EXCHANGE=$(EXCHANGE) SYMBOL=ETH/USDT TIMEFRAME=1m
+	$(MAKE) quant-experiments-6k-1m-multisymbol EXCHANGE=$(EXCHANGE) SYMBOLS=BTC/USDT,ETH/USDT
+	$(MAKE) quant-experiments-3k-1m EXCHANGE=$(EXCHANGE) SYMBOL=BTC/USDT
+	$(MAKE) quant-top20-deep-1m EXCHANGE=$(EXCHANGE) SYMBOL=BTC/USDT
 	$(MAKE) release-guardrails
 	$(MAKE) consistency-check
 	$(MAKE) stakeholder-dashboard

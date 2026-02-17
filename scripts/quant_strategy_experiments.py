@@ -105,6 +105,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--max-worst-seed-drawdown-pct", type=float, default=0.05)
     p.add_argument("--min-fill-ratio", type=float, default=0.10)
     p.add_argument("--max-execution-cost-bps", type=float, default=12.0)
+    p.add_argument("--max-realized-edge-bps", type=float, default=12.0)
+    p.add_argument("--max-sharpe", type=float, default=4.0)
+    p.add_argument("--max-sortino", type=float, default=6.0)
+    p.add_argument("--max-calmar", type=float, default=50.0)
     p.add_argument("--base-slippage-bps", type=float, default=1.2)
     p.add_argument("--slippage-volatility-scale", type=float, default=0.025)
     p.add_argument("--market-impact-bps", type=float, default=0.8)
@@ -633,12 +637,16 @@ def evaluate(args: argparse.Namespace, df_raw: pd.DataFrame) -> List[ExperimentR
                 and hard_fails == 0
                 and dd_pct <= args.drawdown_fail_pct
                 and sortino >= args.min_sortino
+                and sharpe <= args.max_sharpe
+                and sortino <= args.max_sortino
+                and calmar <= args.max_calmar
                 and cvar95 <= args.max_cvar95_pct
                 and total_return_pct <= args.max_total_return_pct
                 and worst_seed_return_pct >= args.min_worst_seed_return_pct
                 and worst_seed_drawdown_pct <= args.max_worst_seed_drawdown_pct
                 and fill_ratio >= args.min_fill_ratio
                 and execution_cost_bps <= args.max_execution_cost_bps
+                and realized_edge_bps <= args.max_realized_edge_bps
             )
 
             calmar_capped = max(-2.0, min(8.0, calmar))
@@ -795,12 +803,16 @@ def main() -> int:
             "drawdown_fail_pct": args.drawdown_fail_pct,
             "min_pass_rate": args.min_pass_rate,
             "min_sortino": args.min_sortino,
+            "max_sharpe": args.max_sharpe,
+            "max_sortino": args.max_sortino,
+            "max_calmar": args.max_calmar,
             "max_cvar95_pct": args.max_cvar95_pct,
             "max_total_return_pct": args.max_total_return_pct,
             "min_worst_seed_return_pct": args.min_worst_seed_return_pct,
             "max_worst_seed_drawdown_pct": args.max_worst_seed_drawdown_pct,
             "min_fill_ratio": args.min_fill_ratio,
             "max_execution_cost_bps": args.max_execution_cost_bps,
+            "max_realized_edge_bps": args.max_realized_edge_bps,
         },
         "gate_pass_count": int(df["gate_pass"].sum()),
         "total_cases": int(len(df)),

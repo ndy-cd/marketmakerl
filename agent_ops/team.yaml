@@ -198,6 +198,7 @@ next_step_plan:
   execution_model:
     mode: "single_command_pipeline"
     command: "make production-grade-step VERSION=e7-round1 EXCHANGE=binance SYMBOL=BTC/USDT"
+    command_xl: "make production-grade-step-xl VERSION=e7-xl-round1 EXCHANGE=binance"
   quant_scope:
     symbols: ["BTC/USDT", "ETH/USDT"]
     timeframe: "1m"

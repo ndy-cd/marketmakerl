@@ -131,6 +131,12 @@ Equivalent one-command target:
 make production-grade-step VERSION=e7-round1 EXCHANGE=binance SYMBOL=BTC/USDT
 ```
 
+Extended one-command target for higher experiment volume:
+
+```bash
+make production-grade-step-xl VERSION=e7-xl-round1 EXCHANGE=binance
+```
+
 ## E7 Acceptance
 
 1. One-minute data coverage and interval checks pass in guardrails.

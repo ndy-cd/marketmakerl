@@ -19,6 +19,7 @@ make campaign N=10
 make research-budgets EXCHANGE=binance SYMBOL=BTC/USDT
 make realtime-paper EXCHANGE=binance SYMBOL=BTC/USDT TIMEFRAME=1m ITERATIONS=20
 make production-grade-step VERSION=e7-round1 EXCHANGE=binance SYMBOL=BTC/USDT
+make production-grade-step-xl VERSION=e7-xl-round1 EXCHANGE=binance
 ```
 
 ## 3) Safety Policy
@@ -106,6 +107,7 @@ Research gate checks:
 - Quant reliability: strict walk-forward gate currently passes with reliability preset.
 - Quant exploration: latest broad quant epoch (`1005` cases) recommends `defensive_core__grid013` under current gates; deep rerun should confirm promotion.
 - Production bridge: `make production-grade-step` is the canonical E7 path for 1m data quality + release blockers.
+- Extended exploration mode: `make production-grade-step-xl` runs 6k multisymbol sweeps before deep validation and release checks.
 - Realization step-up: multisymbol paper shadow flow (`BTC/USDT`, `ETH/USDT`) operational.
 - Decision: continue in paper-only mode.
 

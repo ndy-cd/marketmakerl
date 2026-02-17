@@ -38,6 +38,10 @@ def latest(pattern: str) -> Optional[str]:
     return files[-1] if files else None
 
 
+def list_files(pattern: str) -> list[str]:
+    return sorted(glob.glob(pattern))
+
+
 def read_json(path: Optional[str]) -> Dict[str, Any]:
     if not path:
         return {}
@@ -95,16 +99,35 @@ def dashboard_security_checks() -> Dict[str, Any]:
     return out
 
 
+def select_primary_quant_artifact() -> tuple[Optional[str], Dict[str, Any]]:
+    quant_files = list_files("artifacts/quant_experiments/*_quant_experiments.json")
+    if not quant_files:
+        return None, {}
+
+    best_path: Optional[str] = None
+    best_payload: Dict[str, Any] = {}
+    best_cases = -1
+
+    # Prefer broader quant evidence (max total_cases), tie-break by latest path.
+    for path in quant_files:
+        payload = read_json(path)
+        cases = _as_int(payload.get("total_cases", 0), 0)
+        if cases > best_cases or (cases == best_cases and (best_path is None or path > best_path)):
+            best_cases = cases
+            best_path = path
+            best_payload = payload
+    return best_path, best_payload
+
+
 def main() -> int:
     campaign_path = latest("artifacts/campaign_*/campaign_report.json")
     walk_path = latest("artifacts/walk_forward/*_walk_forward_report.json")
     weekly_path = latest("artifacts/weekly/*_weekly_reliability_report.json")
-    quant_path = latest("artifacts/quant_experiments/*_quant_experiments.json")
+    quant_path, quant = select_primary_quant_artifact()
 
     campaign = read_json(campaign_path)
     walk = read_json(walk_path)
     weekly = read_json(weekly_path)
-    quant = read_json(quant_path)
 
     campaign_mean_pnl = float(campaign.get("summary", {}).get("total_pnl", {}).get("mean", 0.0))
     campaign_mean_sharpe = float(campaign.get("summary", {}).get("sharpe_ratio", {}).get("mean", 0.0))
